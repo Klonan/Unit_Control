@@ -196,8 +196,7 @@ local select_deployers_shortcut =
   action = "create-blueprint-item",
   localised_name = tools.deployer_selection_tool,
   --technology_to_unlock = "construction-robotics",
-  item_to_create = tools.deployer_selection_tool,
-  style = "red",
+  item_to_create = tools.deployer_selection_tool,  style = "red",
   icon =
   {
     filename = path.."deployer_select_shortcut.png",

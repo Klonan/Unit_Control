@@ -379,54 +379,12 @@ add_unit_indicators = function(unit_data)
   local rendering = rendering
   local prototype = unit.prototype
   local box = prototype.collision_box
-  --[[insert(indicators,
-  rendering.draw_rectangle
-  {
-    color = {g = 0.5, a = 0.5},
-    width = 1,
-    filled = false,
-    left_top = unit,
-    left_top_offset = prototype.selection_box.left_top,
-    right_bottom = unit,
-    right_bottom_offset = prototype.selection_box.right_bottom,
-    surface = surface,
-    players = players
-  })]]
   local box = prototype.selection_box
   highlight_box(indicators, {g = 1}, unit, prototype.selection_box, players, surface)
-  --local highlight_box = function(indicators, box_color, source, box, players, surface)
 
---[[
-  if prototype.vision_distance then
-    insert(indicators,
-    rendering.draw_circle
-    {
-      color = {g = 0.1, b = 0.1, a = 0.1},
-      width = 4,
-      radius = prototype.vision_distance,
-      filled = false,
-      target = unit,
-      surface = unit.surface,
-      draw_on_ground = true,
-      players = players
-    })
-  end
+  local gap_length = 1.5
+  local dash_length =  0.5
 
-  if get_attack_range(prototype) then
-    insert(indicators,
-    rendering.draw_circle
-    {
-      color = {r = 0.2, a = 0.1},
-      width = 4,
-      radius = get_attack_range(prototype),
-      filled = false,
-      target = unit,
-      surface = unit.surface,
-      draw_on_ground = true,
-      players = players
-    })
-  end
-]]
   if unit_data.destination then
     indicators[rendering.draw_line
     {
@@ -436,8 +394,8 @@ add_unit_indicators = function(unit_data)
       from = unit_data.destination,
       surface = unit.surface,
       players = players,
-      gap_length = 1.5,
-      dash_length = 0.5,
+      gap_length = gap_length,
+      dash_length = dash_length,
       draw_on_ground = true
     }] = true
   end
@@ -451,8 +409,8 @@ add_unit_indicators = function(unit_data)
       from = unit_data.destination_entity,
       surface = unit.surface,
       players = players,
-      gap_length = 0.5,
-      dash_length = 0.5,
+      gap_length = gap_length,
+      dash_length = dash_length,
       draw_on_ground = true
     }] = true
   end
@@ -469,8 +427,8 @@ add_unit_indicators = function(unit_data)
         from = command.destination,
         surface = unit.surface,
         players = players,
-        gap_length = 0.5,
-        dash_length = 0.5,
+        gap_length = gap_length,
+        dash_length = dash_length,
         draw_on_ground = true
       }] = true
       position = command.destination
@@ -488,8 +446,8 @@ add_unit_indicators = function(unit_data)
           to = to,
           surface = unit.surface,
           players = players,
-          gap_length = 0.5,
-          dash_length = 0.5,
+          gap_length = gap_length,
+          dash_length = dash_length,
           draw_on_ground = true,
         }] = true
       end
@@ -596,13 +554,14 @@ local gui_actions =
       if append and not unit_data.idle then
         table.insert(unit_data.command_queue, hold_position_queue)
       else
+        unit_data.command_queue = {}
         set_command(unit_data, hold_position_command)
         set_unit_not_idle(unit_data)
       end
     end
     game.players[event.player_index].play_sound({path = tool_names.unit_move_sound})
   end,
-  idle_button = function(event)
+  stop_button = function(event)
     local group = get_selected_units(event.player_index)
     if not group then
       return
@@ -714,7 +673,7 @@ local button_map =
   [tool_names.unit_force_attack_tool] = "force_attack_button",
   [tool_names.unit_follow_tool] = "follow_button",
   ["Hold Position"] = "hold_position_button",
-  ["Idle"] = "idle_button",
+  ["Stop"] = "stop_button",
   ["Scout"] = "scout_button"
 }
 

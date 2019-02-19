@@ -13,7 +13,8 @@ util = require("script/script_util")
 
 --error(serpent.block(defines.events))
 
-local libs = {
+local libs =
+{
   unit_control = require "script/unit_control",
 }
 
