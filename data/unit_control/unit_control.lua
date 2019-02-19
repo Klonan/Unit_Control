@@ -169,6 +169,44 @@ local unit_follow_tool =
   alt_selection_color = {g = 1},
 }
 
+local select_units_shortcut =
+{
+  type = "shortcut",
+  name = tools.select_units_shortcut,
+  order = "y",
+  action = "create-blueprint-item",
+  localised_name = tools.unit_selection_tool,
+  --technology_to_unlock = "construction-robotics",
+  item_to_create = tools.unit_selection_tool,
+  style = "blue",
+  icon =
+  {
+    filename = path.."unit_select_shortcut.png",
+    size = 128,
+    priority = "extra-high-no-scale",
+    flags = {"icon"}
+  }
+}
+
+local select_deployers_shortcut =
+{
+  type = "shortcut",
+  name = tools.select_deployers_shortcut,
+  order = "z",
+  action = "create-blueprint-item",
+  localised_name = tools.deployer_selection_tool,
+  --technology_to_unlock = "construction-robotics",
+  item_to_create = tools.deployer_selection_tool,
+  style = "red",
+  icon =
+  {
+    filename = path.."deployer_select_shortcut.png",
+    size = 128,
+    priority = "extra-high-no-scale",
+    flags = {"icon"}
+  }
+}
+
 data:extend{
   unit_selection_tool,
   deployer_selection_tool,
@@ -178,5 +216,7 @@ data:extend{
   unit_attack_move_tool,
   unit_force_attack_tool,
   unit_follow_tool,
-  unit_attack_tool
+  unit_attack_tool,
+  select_units_shortcut,
+  select_deployers_shortcut
 }

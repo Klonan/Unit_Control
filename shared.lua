@@ -20,7 +20,9 @@ data.unit_tools =
   unit_force_attack_tool = "Force attack targets",
   unit_follow_tool = "Follow target",
   move_indicator = "Move Indicator",
-  attack_move_indicator = "Attack Move Indicator"
+  attack_move_indicator = "Attack Move Indicator",
+  select_units_shortcut = "Select Units Shortcut",
+  select_deployers_shortcut = "Select Deployers Shortcut",
 }
 
 return data
