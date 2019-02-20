@@ -1,6 +1,5 @@
 local util = require("data/util/tf_util")
-local names = require("shared")
-local tools = names.unit_tools
+local tools = require("shared").unit_tools
 local path = util.path("data/unit_control/")
 
 local unit_selection_tool =
