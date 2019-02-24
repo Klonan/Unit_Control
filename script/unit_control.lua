@@ -1668,6 +1668,7 @@ local on_entity_spawned = function(event)
       end
     end
   end
+  unit.release_from_spawner()
   return process_command_queue(unit_data)
 end
 
