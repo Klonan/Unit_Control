@@ -4,25 +4,23 @@ local data = {}
 
 data.hotkeys =
 {
-  --unit_move = "Move unit",
-  suicide = "Suicide",
+  --unit_move = "move-unit",
+  suicide = "suicide",
 }
 
 data.unit_tools =
 {
-  unit_selection_tool = "Select units",
-  deployer_selection_tool = "Select deployers",
-  unit_move_tool = "Move to position",
-  unit_patrol_tool = "Add patrol waypoint",
-  unit_move_sound = "Unit move sound",
-  unit_attack_move_tool = "Attack move to position",
-  unit_attack_tool = "Attack targets",
-  unit_force_attack_tool = "Force attack targets",
-  unit_follow_tool = "Follow target",
-  move_indicator = "Move Indicator",
-  attack_move_indicator = "Attack Move Indicator",
-  select_units_shortcut = "Select Units Shortcut",
-  select_deployers_shortcut = "Select Deployers Shortcut",
+  unit_selection_tool = "select-units",
+  deployer_selection_tool = "select-deployers",
+  unit_move_tool = "move-to-position",
+  unit_patrol_tool = "add-patrol-waypoint",
+  unit_move_sound = "unit-move-sound",
+  unit_attack_move_tool = "attack-move-to-position",
+  unit_attack_tool = "attack-targets",
+  unit_force_attack_tool = "force-attack-targets",
+  unit_follow_tool = "follow-target",
+  select_units_shortcut = "select-units-shortcut",
+  select_deployers_shortcut = "select-deployers-shortcut",
 }
 
 return data

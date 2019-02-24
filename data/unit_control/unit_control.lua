@@ -6,7 +6,7 @@ local unit_selection_tool =
 {
   type = "selection-tool",
   name = tools.unit_selection_tool,
-  localised_name = tools.unit_selection_tool,
+  localised_name = {tools.unit_selection_tool},
   selection_mode = {"friend", "entity-with-health"},
   alt_selection_mode = {"friend", "entity-with-health"},
   entity_type_filters = {"unit"},
@@ -33,7 +33,7 @@ local deployer_selection_tool =
 {
   type = "selection-tool",
   name = tools.deployer_selection_tool,
-  localised_name = tools.deployer_selection_tool,
+  localised_name = {tools.deployer_selection_tool},
   selection_mode = {"friend", "entity-with-health"},
   alt_selection_mode = {"friend", "entity-with-health"},
   entity_filters = deploy_filter,
@@ -54,7 +54,7 @@ local unit_move_tool =
 {
   type = "selection-tool",
   name = tools.unit_move_tool,
-  localised_name = tools.unit_move_tool,
+  localised_name = {tools.unit_move_tool},
   selection_mode = {"friend", "enemy"},
   alt_selection_mode = {"enemy", "friend"},
   selection_cursor_box_type = "entity",
@@ -71,7 +71,7 @@ local unit_patrol_tool =
 {
   type = "selection-tool",
   name = tools.unit_patrol_tool,
-  localised_name = tools.unit_patrol_tool,
+  localised_name = {tools.unit_patrol_tool},
   selection_mode = {"friend", "enemy"},
   alt_selection_mode = {"enemy", "friend"},
   selection_cursor_box_type = "entity",
@@ -92,19 +92,11 @@ local move_confirm_sound =
   volume = 2
 }
 
-local light =
-{
-  name = "range_stencil",
-  type = "sprite",
-  filename = "__core__/sound/armor-insert.ogg",
-  volume = 2
-}
-
 local unit_attack_move_tool =
 {
   type = "selection-tool",
   name = tools.unit_attack_move_tool,
-  localised_name = tools.unit_attack_move_tool,
+  localised_name = {tools.unit_attack_move_tool},
   selection_mode = {"friend", "enemy"},
   alt_selection_mode = {"enemy", "friend"},
   selection_cursor_box_type = "entity",
@@ -121,7 +113,7 @@ local unit_attack_tool =
 {
   type = "selection-tool",
   name = tools.unit_attack_tool,
-  localised_name = tools.unit_attack_tool,
+  localised_name = {tools.unit_attack_tool},
   selection_mode = {"enemy", "entity-with-force"},
   alt_selection_mode = {"enemy", "entity-with-force"},
   selection_cursor_box_type = "not-allowed",
@@ -138,7 +130,7 @@ local unit_force_attack_tool =
 {
   type = "selection-tool",
   name = tools.unit_force_attack_tool,
-  localised_name = tools.unit_force_attack_tool,
+  localised_name = {tools.unit_force_attack_tool},
   selection_mode = {"not-same-force", "entity-with-health"},
   alt_selection_mode = {"not-same-force", "entity-with-health"},
   selection_cursor_box_type = "not-allowed",
@@ -155,7 +147,7 @@ local unit_follow_tool =
 {
   type = "selection-tool",
   name = tools.unit_follow_tool,
-  localised_name = tools.unit_follow_tool,
+  localised_name = {tools.unit_follow_tool},
   selection_mode = {"friend", "any-entity"},
   alt_selection_mode = {"friend", "any-entity"},
   selection_cursor_box_type = "copy",
@@ -174,7 +166,7 @@ local select_units_shortcut =
   name = tools.select_units_shortcut,
   order = "y",
   action = "create-blueprint-item",
-  localised_name = tools.unit_selection_tool,
+  localised_name = {tools.unit_selection_tool},
   --technology_to_unlock = "construction-robotics",
   item_to_create = tools.unit_selection_tool,
   style = "blue",
@@ -193,7 +185,7 @@ local select_deployers_shortcut =
   name = tools.select_deployers_shortcut,
   order = "z",
   action = "create-blueprint-item",
-  localised_name = tools.deployer_selection_tool,
+  localised_name = {tools.deployer_selection_tool},
   --technology_to_unlock = "construction-robotics",
   item_to_create = tools.deployer_selection_tool,  style = "red",
   icon =

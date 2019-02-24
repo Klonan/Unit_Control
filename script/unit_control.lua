@@ -7,13 +7,13 @@ local data =
   selected_units = {},
   open_frames = {},
   units = {},
-  unit_groups_to_disband = {},
+  --unit_groups_to_disband = {},
   indicators = {},
   unit_unselectable = {},
   debug = false
 }
 
-local checked_tables = {}
+local checked_tables
 
 local next_command_type =
 {
@@ -82,7 +82,7 @@ local set_scout_command = function(unit_data, failure, delay)
     return set_unit_idle(unit_data, true)
   end
   if delay and delay > 0 then
-    print("Unit was delayed for some ticks: "..delay)
+    --print("Unit was delayed for some ticks: "..delay)
     return set_command(unit_data,
     {
       type = defines.command.stop,
@@ -672,9 +672,9 @@ local button_map =
   [tool_names.unit_attack_tool] = "attack_button",
   [tool_names.unit_force_attack_tool] = "force_attack_button",
   [tool_names.unit_follow_tool] = "follow_button",
-  ["Hold Position"] = "hold_position_button",
-  ["Stop"] = "stop_button",
-  ["Scout"] = "scout_button"
+  ["hold-position"] = "hold_position_button",
+  ["stop"] = "stop_button",
+  ["scout"] = "scout_button"
 }
 
 make_unit_gui = function(frame)
@@ -700,7 +700,7 @@ make_unit_gui = function(frame)
   end
   local butts = frame.add{type = "table", column_count = 1}
   for name, action in pairs (button_map) do
-    local button = butts.add{type = "button", caption = name}
+    local button = butts.add{type = "button", caption = {name}}
     util.register_gui(data.button_actions, button, {type = action})
     button.style.font = "default"
     button.style.horizontally_stretchable = true
@@ -784,7 +784,7 @@ local unit_selection = function(event)
     util.deregister_gui(old_frame, data.button_actions)
     old_frame.destroy()
   end
-  local frame = gui.add{type = "frame", caption = "Unit control", direction = "vertical"}
+  local frame = gui.add{type = "frame", caption = {"unit-control"}, direction = "vertical"}
   data.open_frames[player.index] = frame
   --player.opened = frame
   make_unit_gui(frame)
@@ -1146,6 +1146,7 @@ local attack_closest = function(unit_data, entities)
   local entities = entities
   local force = unit.force
   local surface = unit.surface
+  if not checked_tables then checked_tables = {} end
   if not checked_tables[entities] then
     for k, ent in pairs (entities) do
       if not ent.valid then
@@ -1388,8 +1389,9 @@ local on_gui_click = function(event)
     return true
   end
 end
+
 local on_entity_removed = function(event)
-  checked_tables = {}
+  checked_tables = nil
   deregister_unit(event.entity)
 end
 
@@ -1400,7 +1402,7 @@ process_command_queue = function(unit_data, result)
     return
   end
   local failed = (result == defines.behavior_result.fail)
-  print("Processing command queue "..entity.unit_number.." Failure = "..tostring(result == defines.behavior_result.fail))
+  --print("Processing command queue "..entity.unit_number.." Failure = "..tostring(result == defines.behavior_result.fail))
 
   if failed then
     unit_data.fail_count = (unit_data.fail_count or 0) + 1
@@ -1425,7 +1427,7 @@ process_command_queue = function(unit_data, result)
   local type = next_command.command_type
 
   if type == next_command_type.move then
-    print("Move")
+    --print("Move")
     set_command(unit_data, next_command)
     unit_data.destination = next_command.destination
     table.remove(command_queue, 1)
@@ -1433,7 +1435,7 @@ process_command_queue = function(unit_data, result)
   end
 
   if type == next_command_type.patrol then
-    print("Patrol")
+    --print("Patrol")
     if next_command.destination_index == "initial" then
       next_command.destinations[1] = entity.position
       next_command.destination_index = 2
@@ -1455,7 +1457,7 @@ process_command_queue = function(unit_data, result)
   end
 
   if type == next_command_type.attack then
-    print("Attack")
+    --print("Attack")
     --game.print"Issuing attack command"
     if not attack_closest(unit_data, next_command.targets) then
       table.remove(command_queue, 1)
@@ -1466,34 +1468,35 @@ process_command_queue = function(unit_data, result)
   end
 
   if type == next_command_type.idle then
-    print("Idle")
+    --print("Idle")
     unit_data.command_queue = {}
     return set_unit_idle(unit_data, true)
   end
 
   if type == next_command_type.scout then
-    print("Scout")
+    --print("Scout")
     return set_scout_command(unit_data, result == defines.behavior_result.fail)
   end
 
   if type == next_command_type.follow then
-    print("Follow")
+    --print("Follow")
     return unit_follow(unit_data, next_command)
   end
 
   if type == next_command_type.hold_position then
-    print("Hold position")
+    --print("Hold position")
     return set_command(unit_data, hold_position_command)
   end
 
 end
 
 local on_ai_command_completed = function(event)
-  print("Ai command complete "..event.unit_number)
+  --print("Ai command complete "..event.unit_number)
   local unit_data = data.units[event.unit_number]
   if unit_data then
     return process_command_queue(unit_data, event.result)
   end
+  --[[
   local group_to_disband = data.unit_groups_to_disband[event.unit_number]
   if group_to_disband then
     --This group finished what it was doing, so we kill it.
@@ -1501,6 +1504,7 @@ local on_ai_command_completed = function(event)
     data.unit_groups_to_disband[event.unit_number] = nil
     return
   end
+  ]]
 end
 
 local check_indicators = function(tick)
@@ -1514,7 +1518,7 @@ local check_indicators = function(tick)
 end
 
 local on_tick = function(event)
-  checked_tables = {}
+  checked_tables = nil
   --check_indicators(event.tick)
 end
 
@@ -1550,6 +1554,7 @@ local on_player_removed = function(event)
     end
   end
 end
+
 local NO_GROUP = true
 local on_unit_added_to_group = function(event)
   local unit = event.unit
@@ -1563,12 +1568,13 @@ local on_unit_added_to_group = function(event)
   end
   if NO_GROUP then
     --this is the 'fuckoff' function
-    game.print("Told group to die! "..group.group_number.." - "..unit.unit_number)
+    --game.print("Told group to die! "..group.group_number.." - "..unit.unit_number)
     group.destroy()
     process_command_queue(unit_data)
     return
   end
-  game.print("Unit added to group: "..unit.unit_number)
+  --[[
+  --game.print("Unit added to group: "..unit.unit_number)
   unit_data.in_group = true
   add_unit_indicators(unit_data)
   --He took control of one of our units! lets keep track of this group and set this guy a command when the group finishes its command
@@ -1577,7 +1583,8 @@ local on_unit_added_to_group = function(event)
     return
   end
   data.unit_groups_to_disband[group.group_number] = group
-  game.print("Group added to hit list: "..group.group_number)
+  --game.print("Group added to hit list: "..group.group_number)
+  ]]
 end
 
 local on_unit_removed_from_group = function(event)
@@ -1586,7 +1593,7 @@ local on_unit_removed_from_group = function(event)
   if not (unit and unit.valid) then return end
   local unit_data = data.units[unit.unit_number]
   if unit_data and unit_data.in_group then
-    game.print("Unit removed from group: "..unit.unit_number)
+    --game.print("Unit removed from group: "..unit.unit_number)
     return process_command_queue(unit_data)
   end
 end
@@ -1599,12 +1606,15 @@ local validate_some_stuff = function()
       units[unit_number] = nil
     end
   end
+
+  --[[
   local groups = data.unit_groups_to_disband
   for group_number, group in pairs (groups) do
     if not (group and group.valid) then
       groups[group_number] = nil
     end
   end
+  ]]
 end
 
 local set_map_settings = function()
@@ -1616,14 +1626,14 @@ local set_map_settings = function()
   settings.path_finder.min_steps_to_check_path_find_termination = 500
   settings.path_finder.max_clients_to_accept_any_new_request = 1000
   settings.path_finder.use_path_cache = false
-  settings.path_finder.short_cache_size = 0
-  settings.path_finder.long_cache_size = 0
+  --settings.path_finder.short_cache_size = 0
+  --settings.path_finder.long_cache_size = 0
   settings.steering.moving.force_unit_fuzzy_goto_behavior = true
   settings.steering.default.force_unit_fuzzy_goto_behavior = true
   --settings.steering.moving.radius = 0
   --settings.steering.moving.default = 0
   settings.max_failed_behavior_count = 5
-  settings.steering.moving.force_unit_fuzzy_goto_behavior = true
+  --settings.steering.moving.force_unit_fuzzy_goto_behavior = true
   --settings.steering.moving.radius = 1
   --settings.steering.moving.separation_force = 0.1
   --settings.steering.moving.separation_factor = 1
@@ -1633,12 +1643,12 @@ local on_entity_spawned = function(event)
   local source = event.spawner
   local unit = event.entity
   if not (source and source.valid and unit and unit.valid) then return end
-  print("Unit deployed: "..unit.name)
+  --print("Unit deployed: "..unit.name)
   local source_data = data.units[source.unit_number]
   if not source_data then return end
 
-  print("Unit deployer source queue found: ")
-  print(serpent.block(source_data))
+  --print("Unit deployer source queue found: ")
+  --print(serpent.block(source_data))
   local queue = source_data.command_queue
   local unit_data =
   {
@@ -1681,7 +1691,7 @@ local events =
   [defines.events.on_player_left_game] = on_player_removed,
   [defines.events.on_player_changed_force] = on_player_removed,
   [defines.events.on_unit_added_to_group] = on_unit_added_to_group,
-  [defines.events.on_unit_removed_from_group] = on_unit_removed_from_group,
+  --[defines.events.on_unit_removed_from_group] = on_unit_removed_from_group,
   [defines.events.on_player_changed_surface] = on_player_removed,
   [defines.events.on_surface_deleted] = validate_some_stuff,
   [defines.events.on_surface_cleared] = validate_some_stuff,
