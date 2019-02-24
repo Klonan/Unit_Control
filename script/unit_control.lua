@@ -1643,6 +1643,7 @@ local on_entity_spawned = function(event)
   local source = event.spawner
   local unit = event.entity
   if not (source and source.valid and unit and unit.valid) then return end
+  if unit.type ~= "unit" then return end
   --print("Unit deployed: "..unit.name)
   local source_data = data.units[source.unit_number]
   if not source_data then return end
