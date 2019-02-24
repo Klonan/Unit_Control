@@ -1657,14 +1657,18 @@ local on_entity_spawned = function(event)
     idle = false
   }
   data.units[unit.unit_number] = unit_data
+  local random = math.random
   local r = source.get_radius() + unit.get_radius()
+  local offset = function()
+    return (random() * r * 2) - r
+  end
   for k, command in pairs (unit_data.command_queue) do
     if command.command_type == next_command_type.move then
-      command.destination = {x = command.destination.x + math.random(-r, r), y = command.destination.y + math.random(-r, r)}
+      command.destination = {x = command.destination.x + offset(), y = command.destination.y + offset()}
     end
     if command.command_type == next_command_type.patrol then
       for k, destination in pairs (command.destinations) do
-        destination = {x = destination.x + math.random(-r, r), y = destination.y + math.random(-r, r)}
+        destination = {x = destination.x + offset(), y = destination.y + offset()}
       end
     end
   end
