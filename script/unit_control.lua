@@ -1567,7 +1567,7 @@ local on_unit_added_to_group = function(event)
     return
   end
   if NO_GROUP then
-    --this is the 'fuckoff' function
+    --this is the 'eff off' function
     --game.print("Told group to die! "..group.group_number.." - "..unit.unit_number)
     group.destroy()
     process_command_queue(unit_data)
