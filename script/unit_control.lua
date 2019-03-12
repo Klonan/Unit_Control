@@ -786,7 +786,6 @@ local unit_selection = function(event)
   end
   local frame = gui.add{type = "frame", caption = {"unit-control"}, direction = "vertical"}
   data.open_frames[player.index] = frame
-  --player.opened = frame
   make_unit_gui(frame)
 end
 
@@ -1367,17 +1366,6 @@ local on_player_alt_selected_area = function(event)
   return action(event)
 end
 
-local on_gui_closed = function(event)
-  local gui = event.element
-  if not (gui and gui.valid) then return end
-  local frame = data.open_frames[event.player_index]
-  if frame then
-    util.deregister_gui(frame, data.button_actions)
-    frame.destroy()
-    data.open_frames[event.player_index] = nil
-  end
-end
-
 local on_gui_click = function(event)
   local element = event.element
   if not (element and element.valid) then return end
@@ -1682,7 +1670,6 @@ local events =
   [defines.events.on_player_selected_area] = on_player_selected_area,
   [defines.events.on_entity_settings_pasted] = on_entity_settings_pasted,
   [defines.events.on_player_alt_selected_area] = on_player_alt_selected_area,
-  [defines.events.on_gui_closed] = on_gui_closed,
   [defines.events.on_gui_click] = on_gui_click,
   [defines.events.on_entity_died] = on_entity_removed,
   [defines.events.on_robot_mined_entity] = on_entity_removed,
