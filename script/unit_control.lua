@@ -713,7 +713,7 @@ make_unit_gui = function(player)
   --exit_button.style.width = 16
 
   util.register_gui(data.button_actions, exit_button, {type = "exit_button"})
-  
+
   local map = {}
   for unit_number, ent in pairs (group) do
     map[ent.name] = (map[ent.name] or 0) + 1
@@ -1745,7 +1745,7 @@ unit_control.on_init = function()
   unit_control.on_event = handler(events)
 end
 
-unit_control.on_configuration_changed = function(data)
+unit_control.on_configuration_changed = function(configuration_changed_data)
   data.marked_for_refresh = data.marked_for_refresh or {}
 end
 
