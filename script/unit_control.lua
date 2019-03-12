@@ -10,7 +10,8 @@ local data =
   --unit_groups_to_disband = {},
   indicators = {},
   unit_unselectable = {},
-  debug = false
+  debug = false,
+  marked_for_refresh = {}
 }
 
 local checked_tables
@@ -207,12 +208,14 @@ end
 
 local deselect_units = function(unit_data)
   clear_indicators(unit_data)
-  unit_data.player = nil
-  local entity = unit_data.entity
-  local unit_number = entity.unit_number
-  data.groups[unit_number] = nil
+  if unit_data.player then
+    data.marked_for_refresh[unit_data.player] = true
+    unit_data.player = nil
+  end
+  --local entity = unit_data.entity
+  --local unit_number = entity.unit_number
+  --data.groups[unit_number] = nil
 end
-
 
 local shift_box = function(box, shift)
   local x = shift[1] or shift.x
@@ -496,6 +499,14 @@ local set_unit_not_idle = function(unit_data)
   return add_unit_indicators(unit_data)
 end
 
+local get_frame = function(player_index)
+  local frame = data.open_frames[player_index]
+  if not (frame and frame.valid) then
+    data.open_frames[player_index] = nil
+    return
+  end
+  return frame
+end
 
 local gui_actions =
 {
@@ -598,6 +609,18 @@ local gui_actions =
     end
     game.get_player(event.player_index).play_sound({path = tool_names.unit_move_sound})
   end,
+  exit_button = function(event)
+    local group = get_selected_units(event.player_index)
+    if not group then return end
+
+    local units = data.units
+    for unit_number, entity in pairs (group) do
+      deselect_units(units[unit_number])
+      group[unit_number] = nil
+    end
+    data.selected_units[event.player_index] = nil
+    --The GUI should be destroyed in the on_tick anyway.
+  end,
   selected_units_button = function(event, action)
     local unit_name = action.unit
     local group = get_selected_units(event.player_index)
@@ -653,14 +676,6 @@ local gui_actions =
         end
       end
     end
-
-    local frame = data.open_frames[event.player_index]
-    if not (frame and frame.valid) then
-      data.open_frames[event.player_index] = nil
-      return
-    end
-
-    make_unit_gui(frame)
   end
 }
 
@@ -677,8 +692,10 @@ local button_map =
   ["scout"] = "scout_button"
 }
 
-make_unit_gui = function(frame)
-  local index = frame.player_index
+make_unit_gui = function(player)
+  local index = player.index
+  local frame = get_frame(index)
+  if not (frame and frame.valid) then return end
   local group = get_selected_units(index)
   if not group then return end
   util.deregister_gui(frame, data.button_actions)
@@ -687,6 +704,16 @@ make_unit_gui = function(frame)
     return
   end
   frame.clear()
+  local header_flow = frame.add{type = "flow", direction = "horizontal"}
+  header_flow.add{type = "label", caption = {"unit-control"}, style = "heading_1_label"}
+  local pusher = header_flow.add{type = "flow", direction = "horizontal"}
+  pusher.style.horizontally_stretchable = true
+  local exit_button = header_flow.add{type = "sprite-button", style = "close_button", sprite = "utility/close_white"}
+  --exit_button.style.height = 16
+  --exit_button.style.width = 16
+
+  util.register_gui(data.button_actions, exit_button, {type = "exit_button"})
+  
   local map = {}
   for unit_number, ent in pairs (group) do
     map[ent.name] = (map[ent.name] or 0) + 1
@@ -716,7 +743,7 @@ deregister_unit = function(entity)
   if not unit then return end
   data.units[unit_number] = nil
 
-  clear_indicators(unit)
+  deselect_units(unit)
 
   local group = unit.group
   if group then
@@ -729,15 +756,6 @@ deregister_unit = function(entity)
     --game.print("No player index attached to unit info")
     return
   end
-
-  local frame = data.open_frames[player_index]
-
-  if not (frame and frame.valid) then
-    data.selected_units[player_index] = nil
-    return
-  end
-
-  make_unit_gui(frame)
 end
 
 local unit_selection = function(event)
@@ -778,15 +796,11 @@ local unit_selection = function(event)
     end
   end
   data.selected_units[index] = group
-  local gui = player.gui.left
-  local old_frame = data.open_frames[player.index]
-  if (old_frame and old_frame.valid) then
-    util.deregister_gui(old_frame, data.button_actions)
-    old_frame.destroy()
-  end
-  local frame = gui.add{type = "frame", caption = {"unit-control"}, direction = "vertical"}
+
+  local frame = get_frame(player.index) or player.gui.left.add{type = "frame", direction = "vertical", style = "quick_bar_window_frame"}
   data.open_frames[player.index] = frame
-  make_unit_gui(frame)
+  make_unit_gui(player)
+
 end
 
 local get_offset = function(entities)
@@ -1505,8 +1519,16 @@ local check_indicators = function(tick)
   end
 end
 
+local check_refresh_gui = function()
+  for player_index, bool in pairs (data.marked_for_refresh) do
+    make_unit_gui(game.get_player(player_index))
+    data.marked_for_refresh[player_index] = nil
+  end
+end
+
 local on_tick = function(event)
   checked_tables = nil
+  check_refresh_gui()
   --check_indicators(event.tick)
 end
 
@@ -1515,6 +1537,14 @@ local suicide = function(event)
   if not group then return end
   local unit_number, entity = next(group)
   if entity then entity.die() end
+end
+
+local suicide_all = function(event)
+  local group = get_selected_units(event.player_index)
+  if not group then return end
+  for unit_number, entity in pairs (group) do
+    if entity and entity.valid then entity.die() end
+  end
 end
 
 local on_entity_settings_pasted = function(event)
@@ -1680,6 +1710,7 @@ local events =
   --[defines.event.on_player_created] = on_player_created
   --[defines.events[names.hotkeys.unit_move]] = gui_actions.move_button,
   [names.hotkeys.suicide] = suicide,
+  [names.hotkeys.suicide_all] = suicide_all,
   [defines.events.on_player_died] = on_player_removed,
   [defines.events.on_player_left_game] = on_player_removed,
   [defines.events.on_player_changed_force] = on_player_removed,
@@ -1689,8 +1720,6 @@ local events =
   [defines.events.on_surface_deleted] = validate_some_stuff,
   [defines.events.on_surface_cleared] = validate_some_stuff,
   [defines.events.on_entity_spawned] = on_entity_spawned
-
-
 }
 
 remote.add_interface("unit_control", {
@@ -1714,6 +1743,10 @@ unit_control.on_init = function()
   global.unit_control = data
   set_map_settings()
   unit_control.on_event = handler(events)
+end
+
+unit_control.on_configuration_changed = function(data)
+  data.marked_for_refresh = data.marked_for_refresh or {}
 end
 
 unit_control.get_events = function() return events end

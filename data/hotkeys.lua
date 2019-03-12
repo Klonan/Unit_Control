@@ -18,8 +18,18 @@ local become_an_hero =
   consuming = "game-only"
 }
 
+local become_all_an_hero =
+{
+  type = "custom-input",
+  name = hotkeys.suicide_all,
+  localised_name = {hotkeys.suicide_all},
+  key_sequence = "CONTROL + DELETE",
+  consuming = "game-only"
+}
+
 data:extend
 {
   --move_unit,
   become_an_hero,
+  become_all_an_hero
 }

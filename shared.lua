@@ -6,6 +6,7 @@ data.hotkeys =
 {
   --unit_move = "move-unit",
   suicide = "suicide",
+  suicide_all = "suicide-all",
 }
 
 data.unit_tools =
