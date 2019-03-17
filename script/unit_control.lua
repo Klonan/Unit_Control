@@ -510,6 +510,49 @@ local get_frame = function(player_index)
   return frame
 end
 
+local stop_group = function(player, queue)
+  local group = get_selected_units(player.index)
+  if not group then
+    return
+  end
+  local idle_queue = {command_type = next_command_type.idle}
+  local units = data.units
+  for unit_number, unit in pairs (group) do
+    local unit_data = units[unit_number]
+    if queue and not unit_data.idle then
+      insert(unit_data.command_queue, idle_queue)
+    else
+      set_unit_idle(unit_data, true)
+    end
+  end
+  player.play_sound({path = tool_names.unit_move_sound})
+end
+
+local hold_position_group = function(player, queue)
+  local group = get_selected_units(player.index)
+  if not group then
+    return
+  end
+  local hold_position_queue = {command_type = next_command_type.hold_position}
+  local units = data.units
+  for unit_number, unit in pairs (group) do
+    local unit_data = units[unit_number]
+    if queue and not unit_data.idle then
+      table.insert(unit_data.command_queue, hold_position_queue)
+    else
+      if unit.type == "unit" then
+        unit_data.command_queue = {}
+        set_command(unit_data, hold_position_command)
+        set_unit_not_idle(unit_data)
+      else
+        unit_data.command_queue = {hold_position_queue}
+        add_unit_indicators(unit_data)
+      end
+    end
+  end
+  player.play_sound({path = tool_names.unit_move_sound})
+end
+
 local gui_actions =
 {
   move_button = function(event)
@@ -517,85 +560,42 @@ local gui_actions =
     if not (player and player.valid) then return end
     player.clean_cursor()
     player.cursor_stack.set_stack{name = tool_names.unit_move_tool}
-    player.cursor_stack.label = "Issue move command"
   end,
   patrol_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
     player.clean_cursor()
     player.cursor_stack.set_stack{name = tool_names.unit_patrol_tool}
-    player.cursor_stack.label = "Add patrol waypoint"
   end,
   attack_move_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
     player.clean_cursor()
     player.cursor_stack.set_stack{name = tool_names.unit_attack_move_tool}
-    player.cursor_stack.label = "Issue attack move command"
   end,
   attack_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
     player.clean_cursor()
     player.cursor_stack.set_stack{name = tool_names.unit_attack_tool}
-    player.cursor_stack.label = "Issue attack command"
   end,
   force_attack_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
     player.clean_cursor()
     player.cursor_stack.set_stack{name = tool_names.unit_force_attack_tool}
-    player.cursor_stack.label = "Issue force attack command"
   end,
   follow_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
     player.clean_cursor()
     player.cursor_stack.set_stack{name = tool_names.unit_follow_tool}
-    player.cursor_stack.label = "Issue follow command"
   end,
   hold_position_button = function(event)
-    local group = get_selected_units(event.player_index)
-    if not group then
-      return
-    end
-    local append = event.shift
-    local hold_position_queue = {command_type = next_command_type.hold_position}
-    local units = data.units
-    for unit_number, unit in pairs (group) do
-      local unit_data = units[unit_number]
-      if append and not unit_data.idle then
-        table.insert(unit_data.command_queue, hold_position_queue)
-      else
-        if unit.type == "unit" then
-          unit_data.command_queue = {}
-          set_command(unit_data, hold_position_command)
-          set_unit_not_idle(unit_data)
-        else
-          unit_data.command_queue = {hold_position_queue}
-          add_unit_indicators(unit_data)
-        end
-      end
-    end
-    game.players[event.player_index].play_sound({path = tool_names.unit_move_sound})
+    hold_position_group(game.get_player(event.player_index), event.shift)
   end,
   stop_button = function(event)
-    local group = get_selected_units(event.player_index)
-    if not group then
-      return
-    end
-    local append = event.shift
-    local idle_queue = {command_type = next_command_type.idle}
-    local units = data.units
-    for unit_number, unit in pairs (group) do
-      local unit_data = units[unit_number]
-      if append and not unit_data.idle then
-        insert(unit_data.command_queue, idle_queue)
-      else
-        set_unit_idle(unit_data, true)
-      end
-    end
-    game.get_player(event.player_index).play_sound({path = tool_names.unit_move_sound})
+    stop_group(game.get_player(event.player_index), event.shift)
   end,
   scout_button = function(event)
     local group = get_selected_units(event.player_index)
@@ -699,6 +699,19 @@ local button_map =
   ["scout"] = "scout_button"
 }
 
+local button_map =
+{
+  move_button = {sprite = "utility/mod_dependency_arrow", tooltip = {tool_names.unit_move_tool}},
+  patrol_button = {sprite = "utility/refresh", tooltip = {tool_names.unit_patrol_tool}},
+  attack_move_button = {sprite = "utility/center", tooltip = {tool_names.unit_attack_move_tool}},
+  --attack_button = {sprite = "item/"..tool_names.unit_attack_tool, tooltip = {tool_names.unit_attack_tool}},
+  --force_attack_button = {sprte = "item/"..tool_names.unit_force_attack_tool, tooltip = {tool_names.unit_force_attack_tool}},
+  --follow_button = {sprite = "item/"..tool_names.unit_follow_tool, tooltip = {tool_names.unit_follow_tool}},
+  hold_position_button = {sprite = "utility/downloading", tooltip = {"hold-position"}},
+  stop_button = {sprite = "utility/close_black", tooltip = {"stop"}},
+  scout_button = {sprite = "utility/map", tooltip = {"scout"}}
+}
+
 make_unit_gui = function(player)
   local index = player.index
   local frame = get_frame(index)
@@ -732,12 +745,14 @@ make_unit_gui = function(player)
     local unit_button = tab.add{type = "sprite-button", sprite = "entity/"..name, tooltip = ent.localised_name, number = count, style = "slot_button"}
     util.register_gui(data.button_actions, unit_button, {type = "selected_units_button", unit = name})
   end
-  local butts = frame.add{type = "table", column_count = 1}
-  for name, action in pairs (button_map) do
-    local button = butts.add{type = "button", caption = {name}}
+  local butts = frame.add{type = "table", column_count = 3}
+  for action, param in pairs (button_map) do
+    local button = butts.add{type = "sprite-button", sprite = param.sprite, tooltip = param.tooltip, style = "mini_button"}
+    button.style.height = 32 + 8
+    button.style.width = 32 + 8
     util.register_gui(data.button_actions, button, {type = action})
-    button.style.font = "default"
-    button.style.horizontally_stretchable = true
+    --button.style.font = "default"
+    --button.style.horizontally_stretchable = true
   end
   butts.style.horizontal_align = "center"
 end
@@ -1351,28 +1366,46 @@ local follow_entity = function(event)
   game.players[event.player_index].play_sound({path = tool_names.unit_move_sound})
 end
 
+local multi_attack_selection = function(event)
+  -- A combi funciton for attack, and attack move. If there are selected units, its an attack command. No selected units, its attack move.
+  local entities = event.entities
+  if entities and #entities > 0 then
+    return attack_units(event)
+  end
+  return attack_move_units(event)
+end
+
+local multi_move_selection = function(event)
+  -- A combi funciton for move and follow.
+  local entities = event.entities
+  if entities and #entities > 0 then
+    return follow_entity(event)
+  end
+  return move_units(event)
+end
+
 local selected_area_actions =
 {
   [tool_names.unit_selection_tool] = unit_selection,
   [tool_names.deployer_selection_tool] = unit_selection,
-  [tool_names.unit_move_tool] = move_units,
+  [tool_names.unit_move_tool] = multi_move_selection,
   [tool_names.unit_patrol_tool] = patrol_units,
-  [tool_names.unit_attack_move_tool] = attack_move_units,
-  [tool_names.unit_attack_tool] = attack_units,
-  [tool_names.unit_force_attack_tool] = attack_units,
-  [tool_names.unit_follow_tool] = follow_entity,
+  [tool_names.unit_attack_move_tool] = multi_attack_selection,
+  --[tool_names.unit_attack_tool] = attack_units,
+  --[tool_names.unit_force_attack_tool] = attack_units,
+  --[tool_names.unit_follow_tool] = follow_entity,
 }
 
 local alt_selected_area_actions =
 {
   [tool_names.unit_selection_tool] = unit_selection,
   [tool_names.deployer_selection_tool] = unit_selection,
-  [tool_names.unit_attack_tool] = attack_units,
-  [tool_names.unit_force_attack_tool] = attack_units,
-  [tool_names.unit_attack_move_tool] = attack_move_units,
-  [tool_names.unit_move_tool] = move_units,
+  [tool_names.unit_move_tool] = multi_move_selection,
   [tool_names.unit_patrol_tool] = patrol_units,
-  [tool_names.unit_follow_tool] = follow_unit,
+  [tool_names.unit_attack_move_tool] = multi_attack_selection,
+  --[tool_names.unit_attack_tool] = attack_units,
+  --[tool_names.unit_force_attack_tool] = attack_units,
+  --[tool_names.unit_follow_tool] = follow_unit,
 }
 
 local on_player_selected_area = function(event)
@@ -1705,6 +1738,22 @@ local on_entity_spawned = function(event)
   return process_command_queue(unit_data)
 end
 
+local stop_hotkey = function(event)
+  stop_group(game.get_player(event.player_index))
+end
+
+local queue_stop_hotkey = function(event)
+  stop_group(game.get_player(event.player_index), true)
+end
+
+local hold_position_hotkey = function(event)
+  hold_position_group(game.get_player(event.player_index))
+end
+
+local queue_hold_position_hotkey = function(event)
+  hold_position_group(game.get_player(event.player_index), true)
+end
+
 local events =
 {
   [defines.events.on_player_selected_area] = on_player_selected_area,
@@ -1721,6 +1770,10 @@ local events =
   --[defines.events[names.hotkeys.unit_move]] = gui_actions.move_button,
   [names.hotkeys.suicide] = suicide,
   [names.hotkeys.suicide_all] = suicide_all,
+  [names.hotkeys.stop] = stop_hotkey,
+  [names.hotkeys.queue_stop] = queue_stop_hotkey,
+  [names.hotkeys.hold_position] = hold_position_hotkey,
+  [names.hotkeys.queue_hold_position] = queue_hold_position_hotkey,
   [defines.events.on_player_died] = on_player_removed,
   [defines.events.on_player_left_game] = on_player_removed,
   [defines.events.on_player_changed_force] = on_player_removed,

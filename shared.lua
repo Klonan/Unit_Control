@@ -4,9 +4,12 @@ local data = {}
 
 data.hotkeys =
 {
-  --unit_move = "move-unit",
   suicide = "suicide",
   suicide_all = "suicide-all",
+  stop = "stop",
+  queue_stop = "queue-stop",
+  hold_position = "hold-position",
+  queue_hold_position = "queue-hold-position"
 }
 
 data.unit_tools =

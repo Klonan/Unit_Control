@@ -16,7 +16,7 @@ local unit_selection_tool =
   icon = path.."unit_select.png",
   icon_size = 128,
   stack_size = 1,
-  flags = {},
+  flags = {"not-stackable"},
   show_in_library = true,
   selection_color = {g = 1},
   alt_selection_color = {g = 1, b = 1},
@@ -43,11 +43,21 @@ local deployer_selection_tool =
   icon = path.."deployer_select.png",
   icon_size = 128,
   stack_size = 1,
-  flags = {},
+  flags = {"not-stackable"},
   show_in_library = true,
   selection_color = {g = 1},
   alt_selection_color = {g = 1, b = 1},
   draw_label_for_cursor_render = true,
+}
+
+
+local move_cursor =
+{
+  name = "move-cursor",
+  type = "mouse-cursor",
+  hot_pixel_x = 64,
+  hot_pixel_y = 64,
+  filename = path.."cursors/move_cursor.png"
 }
 
 local unit_move_tool =
@@ -55,16 +65,26 @@ local unit_move_tool =
   type = "selection-tool",
   name = tools.unit_move_tool,
   localised_name = {tools.unit_move_tool},
-  selection_mode = {"friend", "enemy"},
-  alt_selection_mode = {"enemy", "friend"},
-  selection_cursor_box_type = "entity",
-  alt_selection_cursor_box_type = "not-allowed",
+  selection_mode = {"any-entity"},
+  alt_selection_mode = {"any-entity"},
+  selection_cursor_box_type = "copy",
+  alt_selection_cursor_box_type = "copy",
   icon = path.."unit_move_tool.png",
-  icon_size = 258,
+  icon_size = 1,
   stack_size = 1,
-  flags = {"only-in-cursor"},
-  selection_color = {a = 0},
-  alt_selection_color = {a = 0},
+  flags = {"only-in-cursor", "not-stackable"},
+  selection_color = {g = 1},
+  alt_selection_color = {g = 1},
+  mouse_cursor = "move-cursor"
+}
+
+local patrol_cursor =
+{
+  name = "patrol-cursor",
+  type = "mouse-cursor",
+  hot_pixel_x = 64,
+  hot_pixel_y = 64,
+  filename = path.."cursors/patrol_cursor.png"
 }
 
 local unit_patrol_tool =
@@ -77,11 +97,12 @@ local unit_patrol_tool =
   selection_cursor_box_type = "entity",
   alt_selection_cursor_box_type = "not-allowed",
   icon = path.."unit_move_tool.png",
-  icon_size = 258,
+  icon_size = 1,
   stack_size = 1,
-  flags = {"only-in-cursor"},
+  flags = {"only-in-cursor", "not-stackable"},
   selection_color = {a = 0},
   alt_selection_color = {a = 0},
+  mouse_cursor = "patrol-cursor"
 }
 
 local move_confirm_sound =
@@ -92,23 +113,34 @@ local move_confirm_sound =
   volume = 2
 }
 
+local attack_move_cursor =
+{
+  name = "attack-move-cursor",
+  type = "mouse-cursor",
+  hot_pixel_x = 64,
+  hot_pixel_y = 64,
+  filename = path.."cursors/attack_move_cursor.png"
+}
+
 local unit_attack_move_tool =
 {
   type = "selection-tool",
   name = tools.unit_attack_move_tool,
   localised_name = {tools.unit_attack_move_tool},
-  selection_mode = {"friend", "enemy"},
-  alt_selection_mode = {"enemy", "friend"},
-  selection_cursor_box_type = "entity",
+  selection_mode = {"not-same-force", "entity-with-health"},
+  alt_selection_mode = {"not-same-force", "entity-with-health"},
+  selection_cursor_box_type = "not-allowed",
   alt_selection_cursor_box_type = "not-allowed",
   icon = path.."unit_attack_move_tool.png",
-  icon_size = 258,
+  icon_size = 1,
   stack_size = 1,
-  flags = {"only-in-cursor"},
-  selection_color = {a = 0},
-  alt_selection_color = {a = 0},
+  flags = {"only-in-cursor", "not-stackable"},
+  selection_color = {r = 1},
+  alt_selection_color = {r = 1},
+  mouse_cursor = "attack-move-cursor"
 }
 
+--[[
 local unit_attack_tool =
 {
   type = "selection-tool",
@@ -121,7 +153,7 @@ local unit_attack_tool =
   icon = path.."unit_attack_tool.png",
   icon_size = 258,
   stack_size = 1,
-  flags = {"only-in-cursor"},
+  flags = {"only-in-cursor", "not-stackable"},
   selection_color = {r = 1},
   alt_selection_color = {r = 1},
 }
@@ -138,12 +170,12 @@ local unit_force_attack_tool =
   icon = path.."unit_attack_tool.png",
   icon_size = 258,
   stack_size = 1,
-  flags = {"only-in-cursor"},
+  flags = {"only-in-cursor", "not-stackable"},
   selection_color = {r = 1},
   alt_selection_color = {r = 1},
-}
+}]]
 
-local unit_follow_tool =
+--[[local unit_follow_tool =
 {
   type = "selection-tool",
   name = tools.unit_follow_tool,
@@ -155,10 +187,10 @@ local unit_follow_tool =
   icon = path.."unit_attack_tool.png",
   icon_size = 258,
   stack_size = 1,
-  flags = {"only-in-cursor"},
+  flags = {"only-in-cursor", "not-stackable"},
   selection_color = {g = 1},
   alt_selection_color = {g = 1},
-}
+}]]
 
 local select_units_shortcut =
 {
@@ -201,12 +233,15 @@ data:extend{
   unit_selection_tool,
   deployer_selection_tool,
   move_confirm_sound,
+  move_cursor,
   unit_move_tool,
+  patrol_cursor,
   unit_patrol_tool,
+  attack_move_cursor,
   unit_attack_move_tool,
-  unit_force_attack_tool,
-  unit_follow_tool,
-  unit_attack_tool,
+  --unit_force_attack_tool,
+  --unit_follow_tool,
+  --unit_attack_tool,
   select_units_shortcut,
   select_deployers_shortcut
 }
