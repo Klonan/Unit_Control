@@ -567,9 +567,14 @@ local gui_actions =
       if append and not unit_data.idle then
         table.insert(unit_data.command_queue, hold_position_queue)
       else
-        unit_data.command_queue = {}
-        set_command(unit_data, hold_position_command)
-        set_unit_not_idle(unit_data)
+        if unit.type == "unit" then
+          unit_data.command_queue = {}
+          set_command(unit_data, hold_position_command)
+          set_unit_not_idle(unit_data)
+        else
+          unit_data.command_queue = {hold_position_queue}
+          add_unit_indicators(unit_data)
+        end
       end
     end
     game.players[event.player_index].play_sound({path = tool_names.unit_move_sound})
