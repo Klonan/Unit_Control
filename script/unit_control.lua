@@ -485,10 +485,12 @@ set_unit_idle = function(unit_data, send_event)
   unit_data.destination = nil
   unit_data.target = nil
   local unit = unit_data.entity
-  unit.ai_settings.do_separation = false
-  set_command(unit_data, idle_command)
-  if send_event then
-    script.raise_event(script_events.on_unit_idle, {entity = unit})
+  if unit.type == "unit" then
+    unit.ai_settings.do_separation = false
+    set_command(unit_data, idle_command)
+    if send_event then
+      script.raise_event(script_events.on_unit_idle, {entity = unit})
+    end
   end
   return add_unit_indicators(unit_data)
 end
@@ -1638,10 +1640,13 @@ end
 local set_map_settings = function()
   if remote.interfaces["wave_defense"] then return end
   local settings = game.map_settings
-  settings.path_finder.max_steps_worked_per_tick = 10000
-  settings.path_finder.start_to_goal_cost_multiplier_to_terminate_path_find = 1000
-  settings.path_finder.short_request_max_steps = 200
-  settings.path_finder.min_steps_to_check_path_find_termination = 500
+
+  --settings.path_finder.max_steps_worked_per_tick = 10000
+  settings.path_finder.max_steps_worked_per_tick = 400
+
+  --settings.path_finder.start_to_goal_cost_multiplier_to_terminate_path_find = 1000
+  --settings.path_finder.short_request_max_steps = 200
+  --settings.path_finder.min_steps_to_check_path_find_termination = 500
   settings.path_finder.max_clients_to_accept_any_new_request = 1000
   settings.path_finder.use_path_cache = false
   --settings.path_finder.short_cache_size = 0
@@ -1747,6 +1752,7 @@ end
 
 unit_control.on_configuration_changed = function(configuration_changed_data)
   data.marked_for_refresh = data.marked_for_refresh or {}
+  set_map_settings()
 end
 
 unit_control.get_events = function() return events end
