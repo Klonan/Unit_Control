@@ -242,14 +242,16 @@ end
 local highlight_box = function(indicators, box_color, source, box, players, surface)
   local draw_line = rendering.draw_line
   local insert = insert
+  local width = 1
+  local corner_length = util.radius(box) * 0.25
   indicators[draw_line
   {
     color = box_color,
-    width = 2,
+    width = width,
     from = source,
     from_offset = {box.left_top.x, box.left_top.y},
     to = source,
-    to_offset = {box.left_top.x, box.left_top.y + 0.2},
+    to_offset = {box.left_top.x, box.left_top.y + corner_length},
     surface = surface,
     players = players
   }] = true
@@ -257,11 +259,11 @@ local highlight_box = function(indicators, box_color, source, box, players, surf
   indicators[draw_line
   {
     color = box_color,
-    width = 2,
+    width = width,
     from = source,
     from_offset = {box.left_top.x, box.left_top.y},
     to = source,
-    to_offset = {box.left_top.x, box.left_top.y + 0.2},
+    to_offset = {box.left_top.x, box.left_top.y + corner_length},
     surface = surface,
     players = players
   }] = true
@@ -269,11 +271,11 @@ local highlight_box = function(indicators, box_color, source, box, players, surf
   indicators[draw_line
   {
     color = box_color,
-    width = 2,
+    width = width,
     from = source,
     from_offset = {box.left_top.x, box.left_top.y},
     to = source,
-    to_offset = {box.left_top.x + 0.2, box.left_top.y},
+    to_offset = {box.left_top.x + corner_length, box.left_top.y},
     surface = surface,
     players = players
   }] = true
@@ -281,11 +283,11 @@ local highlight_box = function(indicators, box_color, source, box, players, surf
   indicators[draw_line
   {
     color = box_color,
-    width = 2,
+    width = width,
     from = source,
     from_offset = {box.right_bottom.x, box.left_top.y},
     to = source,
-    to_offset = {box.right_bottom.x, box.left_top.y + 0.2},
+    to_offset = {box.right_bottom.x, box.left_top.y + corner_length},
     surface = surface,
     players = players
   }] = true
@@ -293,11 +295,11 @@ local highlight_box = function(indicators, box_color, source, box, players, surf
   indicators[draw_line
   {
     color = box_color,
-    width = 2,
+    width = width,
     from = source,
     from_offset = {box.right_bottom.x, box.left_top.y},
     to = source,
-    to_offset = {box.right_bottom.x - 0.2, box.left_top.y},
+    to_offset = {box.right_bottom.x - corner_length, box.left_top.y},
     surface = surface,
     players = players
   }] = true
@@ -305,11 +307,11 @@ local highlight_box = function(indicators, box_color, source, box, players, surf
   indicators[draw_line
   {
     color = box_color,
-    width = 2,
+    width = width,
     from = source,
     from_offset = {box.left_top.x, box.right_bottom.y},
     to = source,
-    to_offset = {box.left_top.x, box.right_bottom.y - 0.2},
+    to_offset = {box.left_top.x, box.right_bottom.y - corner_length},
     surface = surface,
     players = players
   }] = true
@@ -317,11 +319,11 @@ local highlight_box = function(indicators, box_color, source, box, players, surf
   indicators[draw_line
   {
     color = box_color,
-    width = 2,
+    width = width,
     from = source,
     from_offset = {box.left_top.x, box.right_bottom.y},
     to = source,
-    to_offset = {box.left_top.x + 0.2, box.right_bottom.y},
+    to_offset = {box.left_top.x + corner_length, box.right_bottom.y},
     surface = surface,
     players = players
   }] = true
@@ -329,11 +331,11 @@ local highlight_box = function(indicators, box_color, source, box, players, surf
   indicators[draw_line
   {
     color = box_color,
-    width = 2,
+    width = width,
     from = source,
     from_offset = {box.right_bottom.x, box.right_bottom.y},
     to = source,
-    to_offset = {box.right_bottom.x, box.right_bottom.y - 0.2},
+    to_offset = {box.right_bottom.x, box.right_bottom.y - corner_length},
     surface = surface,
     players = players
   }] = true
@@ -341,11 +343,11 @@ local highlight_box = function(indicators, box_color, source, box, players, surf
   indicators[draw_line
   {
     color = box_color,
-    width = 2,
+    width = width,
     from = source,
     from_offset = {box.right_bottom.x, box.right_bottom.y},
     to = source,
-    to_offset = {box.right_bottom.x - 0.2, box.right_bottom.y},
+    to_offset = {box.right_bottom.x - corner_length, box.right_bottom.y},
     surface = surface,
     players = players
   }] = true
@@ -461,18 +463,6 @@ add_unit_indicators = function(unit_data)
   local target = unit_data.target
   if target and target.valid then
     highlight_box(indicators, {r = 1}, target, target.prototype.selection_box, players, surface)
-    --[[insert(indicators,
-    rendering.draw_line
-    {
-      color = {b = 0.1, r = 0.5, a = 0.02},
-      width = 1,
-      to = unit,
-      from = unit_data.target,
-      surface = unit.surface,
-      gap_length = 0.5,
-      dash_length = 0.5,
-      draw_on_ground = true
-    })]]
   end
 end
 
@@ -720,7 +710,7 @@ make_unit_gui = function(player)
   local group = get_selected_units(index)
   if not group then return end
   util.deregister_gui(frame, script_data.button_actions)
-  if table_size(group) == 0 then
+  if not next(group) then
     frame.destroy()
     return
   end
@@ -737,7 +727,8 @@ make_unit_gui = function(player)
 
   local map = {}
   for unit_number, ent in pairs (group) do
-    map[ent.name] = (map[ent.name] or 0) + 1
+    local name = ent.name
+    map[name] = (map[name] or 0) + 1
   end
   local tab = frame.add{type = "table", column_count = 6}
   local pro = game.entity_prototypes
@@ -793,12 +784,11 @@ local is_double_click = function(event)
   return true
 end
 
-local select_similar_nearby = function(player, entity)
+local select_similar_nearby = function(entity)
   --assume 1080p and 0.3 zoom
-  local r_x = ((1920 / 32) / 0.3) / 2
-  local r_y = ((1080 / 32) / 0.3) / 2
-  local origin = player.position
-  local area = {{origin.x - r_x, origin.y - r_y},{origin.x + r_x, origin.y + r_y}}
+  local r = 32 * 4
+  local origin = entity.position
+  local area = {{origin.x - r, origin.y - r},{origin.x + r, origin.y + r}}
   return entity.surface.find_entities_filtered{area = area, force = entity.force, name = entity.name}
 end
 
@@ -824,10 +814,11 @@ local unit_selection = function(event)
 
   local first_index, first = next(entities)
   if is_double_click(event) and first then
-    entities = select_similar_nearby(player, first)
+    entities = select_similar_nearby(first)
   end
 
   local map = script_data.unit_unselectable
+  local time = game.create_profiler()
   for k, entity in pairs (entities) do
     if not map[entity.name] then
       local unit_index = entity.unit_number
@@ -846,6 +837,7 @@ local unit_selection = function(event)
     end
   end
   script_data.selected_units[index] = group
+  game.print({"", time, game.tick})
 
   local frame = get_frame(player.index) or player.gui.left.add{type = "frame", direction = "vertical", style = "quick_bar_window_frame"}
   script_data.open_frames[player.index] = frame
@@ -1297,7 +1289,7 @@ local unit_follow = function(unit_data, next_command)
   if target.type == "unit" then
     if target.moving then
       --In factorio, north is 0 rad... so rotate back to east being 0 rad like math do
-      local orientation = (target.orientation - 0.25) * 2 * math.pi
+      local orientation = (target.orientation - corner_length5) * 2 * math.pi
       local offset = {math.cos(orientation), math.sin(orientation)}
       local target_speed = target.speed
       local new_position = {unit.position.x + (offset[1] * check_time * target_speed), unit.position.y + (offset[2] * check_time * target_speed)}
