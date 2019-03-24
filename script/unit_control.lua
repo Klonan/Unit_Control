@@ -732,7 +732,7 @@ make_unit_gui = function(player)
   --exit_button.style.height = 16
   --exit_button.style.width = 16
 
-  util.register_gui(data.button_actions, exit_button, {type = "exit_button"})
+  util.register_gui(script_data.button_actions, exit_button, {type = "exit_button"})
 
   local map = {}
   for unit_number, ent in pairs (group) do
@@ -743,14 +743,14 @@ make_unit_gui = function(player)
   for name, count in pairs (map) do
     local ent = pro[name]
     local unit_button = tab.add{type = "sprite-button", sprite = "entity/"..name, tooltip = ent.localised_name, number = count, style = "slot_button"}
-    util.register_gui(data.button_actions, unit_button, {type = "selected_units_button", unit = name})
+    util.register_gui(script_data.button_actions, unit_button, {type = "selected_units_button", unit = name})
   end
   local butts = frame.add{type = "table", column_count = 3}
   for action, param in pairs (button_map) do
     local button = butts.add{type = "sprite-button", sprite = param.sprite, tooltip = param.tooltip, style = "mini_button"}
     button.style.height = 32 + 8
     button.style.width = 32 + 8
-    util.register_gui(data.button_actions, button, {type = action})
+    util.register_gui(script_data.button_actions, button, {type = action})
     --button.style.font = "default"
     --button.style.horizontally_stretchable = true
   end
@@ -1567,7 +1567,7 @@ local check_indicators = function(tick)
 end
 
 local check_refresh_gui = function()
-  for player_index, bool in pairs (data.marked_for_refresh) do
+  for player_index, bool in pairs (script_data.marked_for_refresh) do
     make_unit_gui(game.get_player(player_index))
     script_data.marked_for_refresh[player_index] = nil
   end
