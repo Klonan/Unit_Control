@@ -11,7 +11,8 @@ local script_data =
   indicators = {},
   unit_unselectable = {},
   debug = false,
-  marked_for_refresh = {}
+  marked_for_refresh = {},
+  last_selection_tick = {}
 }
 
 local checked_tables
@@ -780,14 +781,28 @@ deregister_unit = function(entity)
   end
 end
 
-local double_click_unit_selection = function(event)
-  local player = game.get_player(event.player_index)
-  if not (player and player.valid) then return end
-  local last_selection_info = script_data
+local double_click_delay = 30
+
+local is_double_click = function(event)
+  local this_area = event.area
+  local radius = util.radius(this_area)
+  if radius > 1 then return end
+  local last_selection_tick = script_data.last_selection_tick[event.player_index]
+  if not last_selection_tick then return end
+  if (last_selection_tick + double_click_delay) < event.tick then return end
+  return true
+end
+
+local select_similar_nearby = function(player, entity)
+  --assume 1080p and 0.3 zoom
+  local r_x = ((1920 / 32) / 0.3) / 2
+  local r_y = ((1080 / 32) / 0.3) / 2
+  local origin = player.position
+  local area = {{origin.x - r_x, origin.y - r_y},{origin.x + r_x, origin.y + r_y}}
+  return entity.surface.find_entities_filtered{area = area, force = entity.force, name = entity.name}
 end
 
 local unit_selection = function(event)
-  if double_click_unit_selection(event) then return end
   local entities = event.entities
   if not entities then return end
   local append = (event.name == defines.events.on_player_alt_selected_area)
@@ -806,6 +821,12 @@ local unit_selection = function(event)
     end
     group = {}
   end
+
+  local first_index, first = next(entities)
+  if is_double_click(event) and first then
+    entities = select_similar_nearby(player, first)
+  end
+
   local map = script_data.unit_unselectable
   for k, entity in pairs (entities) do
     if not map[entity.name] then
@@ -828,8 +849,8 @@ local unit_selection = function(event)
 
   local frame = get_frame(player.index) or player.gui.left.add{type = "frame", direction = "vertical", style = "quick_bar_window_frame"}
   script_data.open_frames[player.index] = frame
+  script_data.last_selection_tick[player.index] = event.tick
   make_unit_gui(player)
-
 end
 
 local get_offset = function(entities)
@@ -1817,6 +1838,7 @@ end
 
 unit_control.on_configuration_changed = function(configuration_changed_data)
   script_data.marked_for_refresh = script_data.marked_for_refresh or {}
+  script_data.last_selection_tick = script_data.last_selection_tick or {}
   set_map_settings()
 end
 
