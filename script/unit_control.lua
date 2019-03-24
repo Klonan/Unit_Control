@@ -240,117 +240,77 @@ local get_attack_range = function(prototype)
 end
 
 local highlight_box = function(indicators, box_color, source, box, players, surface)
+  local indicators = indicators
   local draw_line = rendering.draw_line
   local insert = insert
   local width = 1
   local corner_length = util.radius(box) * 0.25
-  indicators[draw_line
+  local from_offset = {true, true}
+  local to_offset = {true, true}
+  local params =
   {
     color = box_color,
     width = width,
     from = source,
-    from_offset = {box.left_top.x, box.left_top.y},
     to = source,
-    to_offset = {box.left_top.x, box.left_top.y + corner_length},
+    from_offset = from_offset,
+    to_offset = to_offset,
     surface = surface,
     players = players
-  }] = true
+  }
 
-  indicators[draw_line
-  {
-    color = box_color,
-    width = width,
-    from = source,
-    from_offset = {box.left_top.x, box.left_top.y},
-    to = source,
-    to_offset = {box.left_top.x, box.left_top.y + corner_length},
-    surface = surface,
-    players = players
-  }] = true
+  local ltx = box.left_top.x
+  local lty = box.left_top.y
+  local rbx = box.right_bottom.x
+  local rby = box.right_bottom.y
 
-  indicators[draw_line
-  {
-    color = box_color,
-    width = width,
-    from = source,
-    from_offset = {box.left_top.x, box.left_top.y},
-    to = source,
-    to_offset = {box.left_top.x + corner_length, box.left_top.y},
-    surface = surface,
-    players = players
-  }] = true
+  from_offset[1] = ltx
+  from_offset[2] = lty
+  to_offset[1] = ltx
+  to_offset[2] = lty + corner_length
+  indicators[draw_line(params)] = true
 
-  indicators[draw_line
-  {
-    color = box_color,
-    width = width,
-    from = source,
-    from_offset = {box.right_bottom.x, box.left_top.y},
-    to = source,
-    to_offset = {box.right_bottom.x, box.left_top.y + corner_length},
-    surface = surface,
-    players = players
-  }] = true
+  from_offset[1] = ltx
+  from_offset[2] = lty
+  to_offset[1] = ltx + corner_length
+  to_offset[2] = lty
+  indicators[draw_line(params)] = true
 
-  indicators[draw_line
-  {
-    color = box_color,
-    width = width,
-    from = source,
-    from_offset = {box.right_bottom.x, box.left_top.y},
-    to = source,
-    to_offset = {box.right_bottom.x - corner_length, box.left_top.y},
-    surface = surface,
-    players = players
-  }] = true
+  from_offset[1] = rbx
+  from_offset[2] = lty
+  to_offset[1] = rbx
+  to_offset[2] = lty + corner_length
+  indicators[draw_line(params)] = true
 
-  indicators[draw_line
-  {
-    color = box_color,
-    width = width,
-    from = source,
-    from_offset = {box.left_top.x, box.right_bottom.y},
-    to = source,
-    to_offset = {box.left_top.x, box.right_bottom.y - corner_length},
-    surface = surface,
-    players = players
-  }] = true
+  from_offset[1] = rbx
+  from_offset[2] = lty
+  to_offset[1] = rbx - corner_length
+  to_offset[2] = lty
+  indicators[draw_line(params)] = true
 
-  indicators[draw_line
-  {
-    color = box_color,
-    width = width,
-    from = source,
-    from_offset = {box.left_top.x, box.right_bottom.y},
-    to = source,
-    to_offset = {box.left_top.x + corner_length, box.right_bottom.y},
-    surface = surface,
-    players = players
-  }] = true
+  from_offset[1] = ltx
+  from_offset[2] = rby
+  to_offset[1] = ltx
+  to_offset[2] = rby - corner_length
+  indicators[draw_line(params)] = true
 
-  indicators[draw_line
-  {
-    color = box_color,
-    width = width,
-    from = source,
-    from_offset = {box.right_bottom.x, box.right_bottom.y},
-    to = source,
-    to_offset = {box.right_bottom.x, box.right_bottom.y - corner_length},
-    surface = surface,
-    players = players
-  }] = true
+  from_offset[1] = ltx
+  from_offset[2] = rby
+  to_offset[1] = ltx + corner_length
+  to_offset[2] = rby
+  indicators[draw_line(params)] = true
 
-  indicators[draw_line
-  {
-    color = box_color,
-    width = width,
-    from = source,
-    from_offset = {box.right_bottom.x, box.right_bottom.y},
-    to = source,
-    to_offset = {box.right_bottom.x - corner_length, box.right_bottom.y},
-    surface = surface,
-    players = players
-  }] = true
+  from_offset[1] = rbx
+  from_offset[2] = rby
+  to_offset[1] = rbx
+  to_offset[2] = rby - corner_length
+  indicators[draw_line(params)] = true
+
+  from_offset[1] = rbx
+  from_offset[2] = rby
+  to_offset[1] = rbx + corner_length
+  to_offset[2] = rby
+  indicators[draw_line(params)] = true
 end
 
 add_unit_indicators = function(unit_data)
@@ -389,7 +349,7 @@ add_unit_indicators = function(unit_data)
   highlight_box(indicators, {g = 1}, unit, prototype.selection_box, players, surface)
 
   local gap_length = 1.5
-  local dash_length =  0.5
+  local dash_length = 0.5
 
   if unit_data.destination then
     indicators[rendering.draw_line
