@@ -1256,6 +1256,11 @@ local unit_follow = function(unit_data, next_command)
   end
 
   local unit = unit_data.entity
+  if unit == target then
+    --Don't try to follow yourself.
+    set_command(unit_data, stop)
+    return
+  end
 
   if distance(target.position, unit.position) > follow_range then
     set_command(unit_data,
