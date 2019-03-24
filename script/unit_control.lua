@@ -1,5 +1,4 @@
 local tool_names = names.unit_tools
-
 local script_data =
 {
   button_actions = {},
@@ -41,6 +40,12 @@ local print = function(string)
   log(tick.." | "..string)
   game.print(tick.." | "..string)
 end
+
+local profiler
+local print_profiler = function()
+  --game.print({"", profiler, " ", game.tick})
+end
+
 
 local insert = table.insert
 
@@ -778,7 +783,7 @@ local unit_selection = function(event)
   end
 
   local map = script_data.unit_unselectable
-  local time = game.create_profiler()
+  --profiler = game.create_profiler()
   for k, entity in pairs (entities) do
     if not map[entity.name] then
       local unit_index = entity.unit_number
@@ -796,8 +801,8 @@ local unit_selection = function(event)
       add_unit_indicators(units[unit_index])
     end
   end
+  --print_profiler()
   script_data.selected_units[index] = group
-  game.print({"", time, game.tick})
 
   local frame = get_frame(player.index) or player.gui.left.add{type = "frame", direction = "vertical", style = "quick_bar_window_frame"}
   script_data.open_frames[player.index] = frame
@@ -1172,7 +1177,6 @@ local attack_closest = function(unit_data, entities)
   end
   unit.speed = unit.prototype.speed
   local closest = unit.surface.get_closest(unit.position, entities)
-
   if closest and closest.valid then
     set_command(unit_data,
     {
