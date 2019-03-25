@@ -313,7 +313,7 @@ local highlight_box = function(indicators, box_color, source, box, players, surf
 
   from_offset[1] = rbx
   from_offset[2] = rby
-  to_offset[1] = rbx + corner_length
+  to_offset[1] = rbx - corner_length
   to_offset[2] = rby
   indicators[draw_line(params)] = true
 end
@@ -1176,7 +1176,7 @@ local attack_closest = function(unit_data, entities)
     checked_tables[entities] = true
   end
   unit.speed = unit.prototype.speed
-  local closest = unit.surface.get_closest(unit.position, entities)
+  local closest = surface.get_closest(unit.position, entities)
   if closest and closest.valid then
     set_command(unit_data,
     {
