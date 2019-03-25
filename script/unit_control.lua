@@ -14,7 +14,7 @@ local script_data =
   last_selection_tick = {}
 }
 
-local checked_tables
+local registered_to_attack = {}
 
 local next_command_type =
 {
@@ -42,8 +42,8 @@ local print = function(string)
 end
 
 local profiler
-local print_profiler = function()
-  --game.print({"", profiler, " ", game.tick})
+local print_profiler = function(string)
+  game.print({"", string, " - ", profiler, " ", game.tick})
 end
 
 
@@ -197,7 +197,57 @@ end
 
 local make_unit_gui
 
+local highlight_box
+
+local update_selection_indicators = function(unit_data)
+  game.print("Updating selection indicators")
+
+  if not unit_data.selection_indicators then
+    unit_data.selection_indicators = {}
+    local unit = unit_data.entity
+    local surface = unit.surface
+    highlight_box(unit_data.selection_indicators, {g = 1}, unit, unit.prototype.selection_box, nil, surface)
+  end
+
+  local player = unit_data.player
+
+  if not player then
+    if not unit_data.selection_hidden then
+      local set_visible = rendering.set_visible
+      for k, bool in pairs (unit_data.selection_indicators) do
+        set_visible(k, false)
+      end
+      unit_data.selection_hidden = true
+    end
+    return
+  end
+
+  players = {unit_data.player}
+
+  if unit_data.selection_hidden then
+    local set_visible = rendering.set_visible
+    for k, bool in pairs (unit_data.selection_indicators) do
+      set_visible(k, true)
+    end
+    unit_data.selection_hidden = nil
+  end
+
+  local last_player = unit_data.last_selection_player
+  if last_player and last_player == player then
+    game.print("Same as last time, don't update")
+    return
+  end
+  unit_data.last_selection_player = player
+
+  local set_players = rendering.set_players
+  for k, bool in pairs (unit_data.selection_indicators) do
+    set_players(k, players)
+  end
+end
+
+
 local clear_indicators = function(unit_data)
+  update_selection_indicators(unit_data)
   if not unit_data.indicators then return end
   local destroy = rendering.destroy
   for indicator, bool in pairs (unit_data.indicators) do
@@ -213,11 +263,11 @@ local is_idle = function(unit_number)
 end
 
 local deselect_units = function(unit_data)
-  clear_indicators(unit_data)
   if unit_data.player then
     script_data.marked_for_refresh[unit_data.player] = true
     unit_data.player = nil
   end
+  clear_indicators(unit_data)
   --local entity = unit_data.entity
   --local unit_number = entity.unit_number
   --data.groups[unit_number] = nil
@@ -244,7 +294,7 @@ local get_attack_range = function(prototype)
   return attack_parameters.range
 end
 
-local highlight_box = function(indicators, box_color, source, box, players, surface)
+highlight_box = function(indicators, box_color, source, box, players, surface)
   local indicators = indicators
   local draw_line = rendering.draw_line
   local insert = insert
@@ -320,22 +370,22 @@ end
 
 add_unit_indicators = function(unit_data)
   clear_indicators(unit_data)
-  --if true then return end
-  local player
-  if unit_data.player then
-    player = game.players[unit_data.player]
-  end
-  if not (player and player.valid and player.connected) then return end
+
+
+  if true then return end
+  local player = unit_data.player
+  if not player then return end
   local indicators = {}
   unit_data.indicators = indicators
+
   local unit = unit_data.entity
   local surface = unit.surface
-  local create_entity = surface.create_entity
-  local render_index = player.index
+  --local create_entity = surface.create_entity
+  --local render_index = player.index
   local insert = table.insert
   local position = unit.position
   local name = "highlight-box"
-  local players = {player.index}
+  local players = {unit_data.player}
   if unit_data.in_group then
     indicators[rendering.draw_text
     {
@@ -351,7 +401,7 @@ add_unit_indicators = function(unit_data)
   local prototype = unit.prototype
   local box = prototype.collision_box
   local box = prototype.selection_box
-  highlight_box(indicators, {g = 1}, unit, prototype.selection_box, players, surface)
+  --highlight_box(selected_indicators, {g = 1}, unit, prototype.selection_box, players, surface)
 
   local gap_length = 1.5
   local dash_length = 0.5
@@ -1161,6 +1211,7 @@ local quick_dist = function(p1, p2)
 end
 
 local attack_closest = function(unit_data, entities)
+  error("NOT ANYMORE")
   local unit = unit_data.entity
   local position = unit.position
   local entities = entities
@@ -1253,7 +1304,7 @@ local unit_follow = function(unit_data, next_command)
   if target.type == "unit" then
     if target.moving then
       --In factorio, north is 0 rad... so rotate back to east being 0 rad like math do
-      local orientation = (target.orientation - corner_length5) * 2 * math.pi
+      local orientation = (target.orientation - 0.25) * 2 * math.pi
       local offset = {math.cos(orientation), math.sin(orientation)}
       local target_speed = target.speed
       local new_position = {unit.position.x + (offset[1] * check_time * target_speed), unit.position.y + (offset[2] * check_time * target_speed)}
@@ -1278,6 +1329,18 @@ local unit_follow = function(unit_data, next_command)
   })
 end
 
+local register_to_attack = function(unit_data)
+  local targets = unit_data.command_queue[1].targets
+  local register = registered_to_attack[targets]
+  if not register then
+    register = {}
+    registered_to_attack[targets] = register
+  end
+  insert(register, unit_data)
+
+end
+
+
 local make_attack_command = function(group, entities, append)
   local entities = entities
   if #entities == 0 then return end
@@ -1291,15 +1354,15 @@ local make_attack_command = function(group, entities, append)
     }
     local unit_data = script_data[unit_number]
     if append then
-      if unit_data.idle and commandable then
-        attack_closest(unit_data, entities)
-      end
       table.insert(unit_data.command_queue, next_command)
-    else
-      if commandable then
-        attack_closest(unit_data, entities)
+      if unit_data.idle and commandable then
+        register_to_attack(unit_data)
       end
+    else
       unit_data.command_queue = {next_command}
+      if commandable then
+        register_to_attack(unit_data)
+      end
     end
     set_unit_not_idle(unit_data)
   end
@@ -1490,12 +1553,16 @@ process_command_queue = function(unit_data, result)
   if type == next_command_type.attack then
     --print("Attack")
     --game.print"Issuing attack command"
-    if not attack_closest(unit_data, next_command.targets) then
-      table.remove(command_queue, 1)
-      process_command_queue(unit_data)
-      --game.print"No targets found, removing attack command"
-    end
-    return
+
+    register_to_attack(unit_data)
+    --[[
+      if not attack_closest(unit_data, next_command.targets) then
+        table.remove(command_queue, 1)
+        process_command_queue(unit_data)
+        --game.print"No targets found, removing attack command"
+      end
+      return
+      ]]
   end
 
   if type == next_command_type.idle then
@@ -1555,8 +1622,52 @@ local check_refresh_gui = function()
   end
 end
 
+local bulk_attack_closest = function(entities, group)
+  profiler = game.create_profiler()
+  for k, entity in pairs (entities) do
+    if not entity.valid then
+      entities[k] = nil
+    end
+  end
+  print_profiler("Checked valid")
+  local index, top = next(entities)
+  if not index then
+    for k, unit_data in pairs (group) do
+      table.remove(unit_data.command_queue, 1)
+      process_command_queue(unit_data)
+    end
+    return
+  end
+
+  local get_closest = top.surface.get_closest
+
+  local command =
+  {
+    type = defines.command.attack,
+    distraction = defines.distraction.none,
+    target = false
+  }
+
+
+  for k, unit_data in pairs (group) do
+    if (not command.target) or (k % 15 == 0) then
+      command.target = get_closest(unit_data.entity.position, entities)
+    end
+    set_command(unit_data, command)
+  end
+  print_profiler("Commands set")
+end
+
+local process_attack_register = function()
+
+  for entities, group in pairs (registered_to_attack) do
+    bulk_attack_closest(entities, group)
+  end
+  registered_to_attack = {}
+end
+
 local on_tick = function(event)
-  checked_tables = nil
+  process_attack_register()
   check_refresh_gui()
   --check_indicators(event.tick)
 end
@@ -1800,6 +1911,7 @@ end
 unit_control.on_configuration_changed = function(configuration_changed_data)
   script_data.marked_for_refresh = script_data.marked_for_refresh or {}
   script_data.last_selection_tick = script_data.last_selection_tick or {}
+
   set_map_settings()
 end
 
