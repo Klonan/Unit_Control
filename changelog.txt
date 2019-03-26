@@ -1,0 +1,8 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.1.5
+Date: ????
+  Changes:
+    - Added changelog...
+    - Optimized drawing of unit indication for selection and attack target. (Might be some edge cases? let me know).
+    - Somewhat optimized commanding large groups to attack a lot of targets.
+    - Added double-click to select all of that type nearby.

@@ -243,7 +243,7 @@ local add_target_indicator = function(unit_data)
     indicator_data.indicators = indicators
     highlight_box(indicators, {r = 1}, target, target.prototype.selection_box, {player}, target.surface)
   end
-  
+
 end
 
 remove_target_indicator = function(unit_data)
@@ -254,7 +254,7 @@ remove_target_indicator = function(unit_data)
 
   local target_indicators = script_data.target_indicators[target_index]
   if not target_indicators then return end
-  
+
   local player = unit_data.player
   if not player then return end
 
@@ -467,7 +467,7 @@ add_unit_indicators = function(unit_data)
   local players = {unit_data.player}
 
   --[[
-    
+
     if unit_data.in_group then
       indicators[rendering.draw_text
       {
@@ -1329,9 +1329,12 @@ local directions =
 
 local random = math.random
 local follow_range = 10
-local unit_follow = function(unit_data, next_command)
+local unit_follow = function(unit_data)
   --copy pasta from construction drone
-  local target = next_command.target
+
+  local command = unit_data.command_queue[1]
+  if not command then return end
+  local target = command.target
   if not (target and target.valid) then
     return
   end
@@ -1355,27 +1358,60 @@ local unit_follow = function(unit_data, next_command)
 
   local check_time = random(20, 40)
 
-  if target.type == "player" then
-    local player = target.player
-    if player then
-      local state = player.walking_state
-      if state.walking then
-        local offset = directions[state.direction]
-        local target_speed = target.character_running_speed
-        local new_position = {unit.position.x + (offset[1] * check_time * target_speed), unit.position.y + (offset[2] * check_time * target_speed)}
-        return set_command(unit_data,
-        {
-          type = defines.command.go_to_location,
-          radius = 1,
-          distraction = defines.distraction.by_enemy,
-          destination = unit.surface.find_non_colliding_position(unit.name, new_position, 0, 1),
-          speed = math.min(unit.prototype.speed, target_speed * (check_time / (check_time - 1)))
-        })
-      end
+  local target_type = target.type
+
+  local generic_vehicle_types =
+  {
+    car = true,
+    tank = true,
+    locomotive = true,
+    ["cargo-wagon"] = true,
+    ["fluid-wagon"] = true,
+    ["artillery-wagon"] = true
+  }
+
+  if target_type == "player" then
+    if target.vehicle then
+      target = target.vehicle
+      target_type = target.type
     end
   end
 
-  if target.type == "unit" then
+  if generic_vehicle_types[target_type] then
+    local speed = target.speed
+    if speed ~= 0 then
+      --In factorio, north is 0 rad... so rotate back to east being 0 rad like math do
+      local initial = target.orientation
+      if speed < 0 then initial = initial + 0.5 end
+      local orientation = (initial - 0.25) * 2 * math.pi
+      local offset = {math.cos(orientation), math.sin(orientation)}
+      local target_speed = math.abs(speed)
+      local new_position = {unit.position.x + (offset[1] * check_time * target_speed), unit.position.y + (offset[2] * check_time * target_speed)}
+      return set_command(unit_data,
+      {
+        type = defines.command.go_to_location,
+        radius = 1,
+        distraction = defines.distraction.by_enemy,
+        destination = unit.surface.find_non_colliding_position(unit.name, new_position, 0, 1),
+        speed = math.min(unit.prototype.speed, target_speed * (check_time / (check_time - 1)))
+      })
+    end
+  elseif target_type == "player" then
+    local state = target.walking_state
+    if state.walking then
+      local offset = directions[state.direction]
+      local target_speed = target.character_running_speed
+      local new_position = {unit.position.x + (offset[1] * check_time * target_speed), unit.position.y + (offset[2] * check_time * target_speed)}
+      return set_command(unit_data,
+      {
+        type = defines.command.go_to_location,
+        radius = 1,
+        distraction = defines.distraction.by_enemy,
+        destination = unit.surface.find_non_colliding_position(unit.name, new_position, 0, 1),
+        speed = math.min(unit.prototype.speed, target_speed * (check_time / (check_time - 1)))
+      })
+    end
+  elseif target_type == "unit" then
     if target.moving then
       --In factorio, north is 0 rad... so rotate back to east being 0 rad like math do
       local orientation = (target.orientation - 0.25) * 2 * math.pi
@@ -1391,9 +1427,12 @@ local unit_follow = function(unit_data, next_command)
         speed = math.min(unit.prototype.speed, target_speed * (check_time / (check_time - 1)))
       })
     end
+  else
+    --They aren't a 'moving' type, so consider this command DONE.
+    table.remove(unit_data.command_queue, 1)
+    return process_command_queue(unit_data)
   end
 
-  --todo wander in a random direction...
   return set_command(unit_data,
   {
     type = defines.command.wander,
@@ -1404,6 +1443,8 @@ local unit_follow = function(unit_data, next_command)
 end
 
 local register_to_attack = function(unit_data)
+  -- So actually, there is some heavy mode failure, most likely due to this
+  -- However I don't think in a real game it will actually desync.
   local targets = unit_data.command_queue[1].targets
   local register = registered_to_attack[targets]
   if not register then
@@ -1411,7 +1452,6 @@ local register_to_attack = function(unit_data)
     registered_to_attack[targets] = register
   end
   insert(register, unit_data)
-
 end
 
 
@@ -1454,15 +1494,15 @@ local make_follow_command = function(group, target, append)
     }
     local unit_data = script_data[unit_number]
     if append then
-      if unit_data.idle and commandable then
-        unit_follow(unit_data, next_command)
-      end
       table.insert(unit_data.command_queue, next_command)
-    else
-      if commandable then
-        unit_follow(unit_data, next_command)
+      if unit_data.idle and commandable then
+        unit_follow(unit_data)
       end
+    else
       unit_data.command_queue = {next_command}
+      if commandable then
+        unit_follow(unit_data)
+      end
     end
     set_unit_not_idle(unit_data)
   end
@@ -1476,7 +1516,7 @@ local attack_units = function(event)
   end
   local append = event.name == defines.events.on_player_alt_selected_area
   make_attack_command(group, event.entities, append)
-  game.players[event.player_index].play_sound({path = tool_names.unit_move_sound})
+  game.get_player(event.player_index).play_sound({path = tool_names.unit_move_sound})
 end
 
 local follow_entity = function(event)
@@ -1489,7 +1529,7 @@ local follow_entity = function(event)
   if not target then return end
   local append = event.name == defines.events.on_player_alt_selected_area
   make_follow_command(group, target, append)
-  game.players[event.player_index].play_sound({path = tool_names.unit_move_sound})
+  game.get_player(event.player_index).play_sound({path = tool_names.unit_move_sound})
 end
 
 local multi_attack_selection = function(event)
@@ -1642,7 +1682,7 @@ process_command_queue = function(unit_data, result)
 
   if type == next_command_type.follow then
     --print("Follow")
-    return unit_follow(unit_data, next_command)
+    return unit_follow(unit_data)
   end
 
   if type == next_command_type.hold_position then
@@ -1670,10 +1710,11 @@ local on_ai_command_completed = function(event)
 end
 
 local check_refresh_gui = function()
+  if not next(script_data.marked_for_refresh) then return end
   for player_index, bool in pairs (script_data.marked_for_refresh) do
     make_unit_gui(game.get_player(player_index))
-    script_data.marked_for_refresh[player_index] = nil
   end
+  script_data.marked_for_refresh = {}
 end
 
 local bulk_attack_closest = function(entities, group)
@@ -1714,7 +1755,7 @@ local bulk_attack_closest = function(entities, group)
 end
 
 local process_attack_register = function()
-
+  if not next(registered_to_attack) then return end
   for entities, group in pairs (registered_to_attack) do
     bulk_attack_closest(entities, group)
   end
