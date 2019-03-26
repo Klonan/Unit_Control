@@ -11,7 +11,8 @@ local script_data =
   unit_unselectable = {},
   debug = false,
   marked_for_refresh = {},
-  last_selection_tick = {}
+  last_selection_tick = {},
+  targeted_indicators = {}
 }
 
 local registered_to_attack = {}
@@ -55,18 +56,29 @@ local distance = function(position_1, position_2)
   return ((d_x * d_x) + (d_y * d_y)) ^ 0.5
 end
 
+local delim = "."
+local concat = table.concate
+local get_unit_number = function(entity)
+  return entity.unit_number or concat{entity.surface.index, delim, entity.position.x, delim, entity.position.y}
+end
+
 local add_unit_indicators
 
 local set_command = function(unit_data, command)
-  unit_data.command = command
   local unit = unit_data.entity
+  if not unit.valid then return end
+  unit_data.command = command
   unit_data.destination = command.destination
   unit_data.destination_entity = command.destination_entity
   unit_data.target = command.target
   unit_data.in_group = nil
   unit.speed = command.speed or unit.prototype.speed
   unit.ai_settings.path_resolution_modifier = command.path_resolution_modifier or -2
-  unit.ai_settings.do_separation = true
+  if command.do_separation ~= nil then
+    unit.ai_settings.do_separation = command.do_separation
+  else
+    unit.ai_settings.do_separation = true
+  end
   unit.set_command(command)
   return add_unit_indicators(unit_data)
 end
@@ -200,7 +212,7 @@ local make_unit_gui
 local highlight_box
 
 local update_selection_indicators = function(unit_data)
-  game.print("Updating selection indicators")
+  --game.print("Updating selection indicators")
 
   if not unit_data.selection_indicators then
     unit_data.selection_indicators = {}
@@ -234,7 +246,7 @@ local update_selection_indicators = function(unit_data)
 
   local last_player = unit_data.last_selection_player
   if last_player and last_player == player then
-    game.print("Same as last time, don't update")
+    --game.print("Same as last time, don't update")
     return
   end
   unit_data.last_selection_player = player
@@ -1551,18 +1563,7 @@ process_command_queue = function(unit_data, result)
   end
 
   if type == next_command_type.attack then
-    --print("Attack")
-    --game.print"Issuing attack command"
-
-    register_to_attack(unit_data)
-    --[[
-      if not attack_closest(unit_data, next_command.targets) then
-        table.remove(command_queue, 1)
-        process_command_queue(unit_data)
-        --game.print"No targets found, removing attack command"
-      end
-      return
-      ]]
+    return register_to_attack(unit_data)
   end
 
   if type == next_command_type.idle then
@@ -1605,16 +1606,6 @@ local on_ai_command_completed = function(event)
   ]]
 end
 
-local check_indicators = function(tick)
-  local indicators = script_data.indicators[tick]
-  if not indicators then return end
-  for k, ent in pairs (indicators) do
-    if ent.valid then
-      ent.destroy()
-    end
-  end
-end
-
 local check_refresh_gui = function()
   for player_index, bool in pairs (script_data.marked_for_refresh) do
     make_unit_gui(game.get_player(player_index))
@@ -1625,11 +1616,11 @@ end
 local bulk_attack_closest = function(entities, group)
   profiler = game.create_profiler()
   for k, entity in pairs (entities) do
-    if not entity.valid then
+    if not (entity.valid and entity.get_health_ratio() > 0) then
       entities[k] = nil
     end
   end
-  print_profiler("Checked valid")
+  --print_profiler("Checked valid")
   local index, top = next(entities)
   if not index then
     for k, unit_data in pairs (group) do
@@ -1645,17 +1636,20 @@ local bulk_attack_closest = function(entities, group)
   {
     type = defines.command.attack,
     distraction = defines.distraction.none,
+    do_separation = false,
     target = false
   }
 
-
+  --local count = 1
   for k, unit_data in pairs (group) do
-    if (not command.target) or (k % 15 == 0) then
-      command.target = get_closest(unit_data.entity.position, entities)
+    local unit = unit_data.entity
+    if unit.valid then
+      command.target = get_closest(unit.position, entities)
+      --count = count + 1
+      set_command(unit_data, command)
     end
-    set_command(unit_data, command)
   end
-  print_profiler("Commands set")
+  --print_profiler("Commands set " .. count)
 end
 
 local process_attack_register = function()
@@ -1669,7 +1663,6 @@ end
 local on_tick = function(event)
   process_attack_register()
   check_refresh_gui()
-  --check_indicators(event.tick)
 end
 
 local suicide = function(event)
@@ -1909,8 +1902,10 @@ unit_control.on_init = function()
 end
 
 unit_control.on_configuration_changed = function(configuration_changed_data)
+
   script_data.marked_for_refresh = script_data.marked_for_refresh or {}
   script_data.last_selection_tick = script_data.last_selection_tick or {}
+  script_data.targeted_indicators = script_data.targeted_indicators or {}
 
   set_map_settings()
 end
