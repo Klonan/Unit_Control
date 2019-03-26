@@ -12,7 +12,7 @@ local script_data =
   debug = false,
   marked_for_refresh = {},
   last_selection_tick = {},
-  targeted_indicators = {}
+  target_indicators = {}
 }
 
 local registered_to_attack = {}
@@ -57,14 +57,16 @@ local distance = function(position_1, position_2)
 end
 
 local delim = "."
-local concat = table.concate
+local concat = table.concat
 local get_unit_number = function(entity)
   return entity.unit_number or concat{entity.surface.index, delim, entity.position.x, delim, entity.position.y}
 end
 
 local add_unit_indicators
+local remove_target_indicator
 
 local set_command = function(unit_data, command)
+  remove_target_indicator(unit_data)
   local unit = unit_data.entity
   if not unit.valid then return end
   unit_data.command = command
@@ -207,9 +209,76 @@ local get_selected_units = function(player_index)
   return selected
 end
 
+local highlight_box
+
+local add_target_indicator = function(unit_data)
+  local player = unit_data.player
+  if not player then return end
+
+  local target = unit_data.target
+  if not (target and target.valid) then return end
+  local target_index = get_unit_number(target)
+
+  local target_indicators = script_data.target_indicators[target_index]
+  if not target_indicators then
+    target_indicators = {}
+    script_data.target_indicators[target_index] = target_indicators
+  end
+
+  local indicator_data = target_indicators[player]
+  if not indicator_data then
+    indicator_data =
+    {
+      targeting_me = {}
+    }
+    target_indicators[player] = indicator_data
+  end
+
+  indicator_data.targeting_me[unit_data.entity.unit_number] = true
+
+  local indicators = indicator_data.indicators
+
+  if not indicators then
+    indicators = {}
+    indicator_data.indicators = indicators
+    highlight_box(indicators, {r = 1}, target, target.prototype.selection_box, {player}, target.surface)
+  end
+  
+end
+
+remove_target_indicator = function(unit_data)
+
+  local target = unit_data.target
+  if not (target and target.valid) then return end
+  local target_index = get_unit_number(target)
+
+  local target_indicators = script_data.target_indicators[target_index]
+  if not target_indicators then return end
+  
+  local player = unit_data.player
+  if not player then return end
+
+  local indicator_data = target_indicators[player]
+  if not indicator_data then return end
+
+  indicator_data.targeting_me[unit_data.entity.unit_number] = nil
+
+  --If someone is still targeting, don't do anything.
+  local next_index = next(indicator_data.targeting_me)
+  if next_index then return end
+
+  local destroy = rendering.destroy
+
+  for k, bool in pairs (indicator_data.indicators) do
+    destroy(k)
+  end
+
+  target_indicators[player] = nil
+
+end
+
 local make_unit_gui
 
-local highlight_box
 
 local update_selection_indicators = function(unit_data)
   --game.print("Updating selection indicators")
@@ -257,7 +326,6 @@ local update_selection_indicators = function(unit_data)
   end
 end
 
-
 local clear_indicators = function(unit_data)
   update_selection_indicators(unit_data)
   if not unit_data.indicators then return end
@@ -275,11 +343,13 @@ local is_idle = function(unit_number)
 end
 
 local deselect_units = function(unit_data)
+  remove_target_indicator(unit_data)
   if unit_data.player then
     script_data.marked_for_refresh[unit_data.player] = true
     unit_data.player = nil
   end
   clear_indicators(unit_data)
+
   --local entity = unit_data.entity
   --local unit_number = entity.unit_number
   --data.groups[unit_number] = nil
@@ -381,10 +451,12 @@ highlight_box = function(indicators, box_color, source, box, players, surface)
 end
 
 add_unit_indicators = function(unit_data)
+
   clear_indicators(unit_data)
+  add_target_indicator(unit_data)
 
+  --if true then return end
 
-  if true then return end
   local player = unit_data.player
   if not player then return end
   local indicators = {}
@@ -392,40 +464,36 @@ add_unit_indicators = function(unit_data)
 
   local unit = unit_data.entity
   local surface = unit.surface
-  --local create_entity = surface.create_entity
-  --local render_index = player.index
-  local insert = table.insert
-  local position = unit.position
-  local name = "highlight-box"
   local players = {unit_data.player}
-  if unit_data.in_group then
-    indicators[rendering.draw_text
-    {
-      text="In group",
-      surface=surface,
-      target=unit,
-      color={g = 0.5},
-      scale_with_zoom=true
-    }] = true
-    return
-  end
-  local rendering = rendering
-  local prototype = unit.prototype
-  local box = prototype.collision_box
-  local box = prototype.selection_box
-  --highlight_box(selected_indicators, {g = 1}, unit, prototype.selection_box, players, surface)
 
-  local gap_length = 1.5
-  local dash_length = 0.5
+  --[[
+    
+    if unit_data.in_group then
+      indicators[rendering.draw_text
+      {
+        text="In group",
+        surface=surface,
+        target=unit,
+        color={g = 0.5},
+        scale_with_zoom=true
+      }] = true
+      return
+    end
+    ]]
+
+  local rendering = rendering
+  local draw_line = rendering.draw_line
+  local gap_length = 1.25
+  local dash_length = 0.25
 
   if unit_data.destination then
-    indicators[rendering.draw_line
+    indicators[draw_line
     {
       color = {b = 0.1, g = 0.5, a = 0.02},
       width = 1,
       to = unit,
       from = unit_data.destination,
-      surface = unit.surface,
+      surface = surface,
       players = players,
       gap_length = gap_length,
       dash_length = dash_length,
@@ -434,13 +502,13 @@ add_unit_indicators = function(unit_data)
   end
 
   if unit_data.destination_entity and unit_data.destination_entity.valid then
-    indicators[rendering.draw_line
+    indicators[draw_line
     {
       color = {b = 0.1, g = 0.5, a = 0.02},
       width = 1,
       to = unit,
       from = unit_data.destination_entity,
-      surface = unit.surface,
+      surface = surface,
       players = players,
       gap_length = gap_length,
       dash_length = dash_length,
@@ -452,13 +520,13 @@ add_unit_indicators = function(unit_data)
   for k, command in pairs (unit_data.command_queue) do
 
     if command.command_type == next_command_type.move then
-      indicators[rendering.draw_line
+      indicators[draw_line
       {
         color = {b = 0.1, g = 0.5, a = 0.02},
         width = 1,
         to = position,
         from = command.destination,
-        surface = unit.surface,
+        surface = surface,
         players = players,
         gap_length = gap_length,
         dash_length = dash_length,
@@ -471,13 +539,13 @@ add_unit_indicators = function(unit_data)
       for k = 1, #command.destinations do
         local to = command.destinations[k]
         local from = command.destinations[k + 1] or command.destinations[1]
-        indicators[rendering.draw_line
+        indicators[draw_line
         {
           color = {b = 0.5, g = 0.2, a = 0.05},
           width = 1,
           from = from,
           to = to,
-          surface = unit.surface,
+          surface = surface,
           players = players,
           gap_length = gap_length,
           dash_length = dash_length,
@@ -487,10 +555,7 @@ add_unit_indicators = function(unit_data)
     end
 
   end
-  local target = unit_data.target
-  if target and target.valid then
-    highlight_box(indicators, {r = 1}, target, target.prototype.selection_box, players, surface)
-  end
+
 end
 
 local stop = {type = defines.command.stop}
@@ -1054,8 +1119,6 @@ local make_move_command = function(param)
   end
 end
 
-
-
 local move_units = function(event)
   local group = get_selected_units(event.player_index)
   if not group then
@@ -1098,7 +1161,6 @@ local find_patrol_comand = function(queue)
     end
   end
 end
-
 
 local process_command_queue
 
@@ -1497,7 +1559,8 @@ local on_gui_click = function(event)
 end
 
 local on_entity_removed = function(event)
-  checked_tables = nil
+  local entity = event.entity
+  script_data.target_indicators[get_unit_number(entity)] = nil
   deregister_unit(event.entity)
 end
 
@@ -1614,7 +1677,7 @@ local check_refresh_gui = function()
 end
 
 local bulk_attack_closest = function(entities, group)
-  profiler = game.create_profiler()
+  --profiler = game.create_profiler()
   for k, entity in pairs (entities) do
     if not (entity.valid and entity.get_health_ratio() > 0) then
       entities[k] = nil
@@ -1640,12 +1703,10 @@ local bulk_attack_closest = function(entities, group)
     target = false
   }
 
-  --local count = 1
   for k, unit_data in pairs (group) do
     local unit = unit_data.entity
     if unit.valid then
       command.target = get_closest(unit.position, entities)
-      --count = count + 1
       set_command(unit_data, command)
     end
   end
@@ -1905,7 +1966,7 @@ unit_control.on_configuration_changed = function(configuration_changed_data)
 
   script_data.marked_for_refresh = script_data.marked_for_refresh or {}
   script_data.last_selection_tick = script_data.last_selection_tick or {}
-  script_data.targeted_indicators = script_data.targeted_indicators or {}
+  script_data.target_indicators = script_data.target_indicators or {}
 
   set_map_settings()
 end
