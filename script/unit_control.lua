@@ -338,7 +338,7 @@ end
 
 local is_idle = function(unit_number)
   local unit_data = script_data.units[unit_number]
-  if not unit_data then return false end
+  if not unit_data then return true end
   if unit_data.idle and not unit_data.player then return true end
 end
 
