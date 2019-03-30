@@ -1992,6 +1992,9 @@ remote.add_interface("unit_control", {
   end,
   set_map_settings = function()
     set_map_settings()
+  end,
+  is_unit_idle = function(unit_number)
+    return is_idle(unit_number)
   end
 })
 
