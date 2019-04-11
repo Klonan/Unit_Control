@@ -185,7 +185,7 @@ local set_scout_command = function(unit_data, failure, delay)
   return set_command(unit_data,
   {
     type = defines.command.go_to_location,
-    distraction = defines.distraction.by_enemy,
+    distraction = defines.distraction.by_anything,
     destination = tile_destination,
     radius = 1,
     pathfind_flags =
@@ -1787,6 +1787,7 @@ local on_entity_settings_pasted = function(event)
   local source = event.source
   local destination = event.destination
   if not (source and source.valid and destination and destination.valid) then return end
+  deregister_unit(destination)
   local unit_data = script_data.units[source.unit_number]
   if not unit_data then return end
   script_data.units[destination.unit_number] = util.copy(unit_data)
