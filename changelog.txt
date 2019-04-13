@@ -4,6 +4,7 @@ Date: 2019-04-13
   Changes:
     - You can only select and order things on your own force.
     - Fixed a bug with copy pasting deployers.
+---------------------------------------------------------------------------------------------------
 Version: 0.1.5
 Date: 2019-03-26
   Changes:
