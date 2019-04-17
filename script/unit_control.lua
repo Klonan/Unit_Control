@@ -1611,7 +1611,7 @@ process_command_queue = function(unit_data, event)
     --game.print("Entity is nil?? Please save the game and report it to Klonan!")
     return
   end
-  local failed = (event.result == defines.behavior_result.fail)
+  local failed = (event and event.result == defines.behavior_result.fail)
   --print("Processing command queue "..entity.unit_number.." Failure = "..tostring(result == defines.behavior_result.fail))
 
   if failed then
