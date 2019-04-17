@@ -1145,7 +1145,7 @@ local attack_move_units = function(event)
   local player = game.players[event.player_index]
   make_move_command{
     position = util.center(event.area),
-    distraction = defines.distraction.by_enemy,
+    distraction = defines.distraction.by_anything,
     group = group,
     append = event.name == defines.events.on_player_alt_selected_area,
     player = player
@@ -1604,13 +1604,14 @@ local on_entity_removed = function(event)
   deregister_unit(event.entity)
 end
 
-process_command_queue = function(unit_data, result)
+process_command_queue = function(unit_data, event)
   local entity = unit_data.entity
   if not (entity and entity.valid) then
-    game.print("Entity is nil?? Please save the game and report it to Klonan!")
+    script_data.units[event.unit_number] = nil
+    --game.print("Entity is nil?? Please save the game and report it to Klonan!")
     return
   end
-  local failed = (result == defines.behavior_result.fail)
+  local failed = (event.result == defines.behavior_result.fail)
   --print("Processing command queue "..entity.unit_number.." Failure = "..tostring(result == defines.behavior_result.fail))
 
   if failed then
@@ -1696,7 +1697,7 @@ local on_ai_command_completed = function(event)
   --print("Ai command complete "..event.unit_number)
   local unit_data = script_data.units[event.unit_number]
   if unit_data then
-    return process_command_queue(unit_data, event.result)
+    return process_command_queue(unit_data, event)
   end
   --[[
   local group_to_disband = script_data.unit_groups_to_disband[event.unit_number]
