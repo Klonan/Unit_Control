@@ -1607,7 +1607,9 @@ end
 process_command_queue = function(unit_data, event)
   local entity = unit_data.entity
   if not (entity and entity.valid) then
-    script_data.units[event.unit_number] = nil
+    if event then
+      script_data.units[event.unit_number] = nil
+    end
     --game.print("Entity is nil?? Please save the game and report it to Klonan!")
     return
   end
