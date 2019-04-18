@@ -1445,9 +1445,9 @@ end
 local register_to_attack = function(unit_data)
 
   local targets = unit_data.command_queue[1].targets
-
+  local target
   for k, entity in pairs (targets) do
-    if entity.valid then
+    if (entity and entity.valid) then
       target = entity
       break
     else
