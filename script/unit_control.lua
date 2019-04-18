@@ -1449,6 +1449,7 @@ local register_to_attack = function(unit_data)
   for k, entity in pairs (targets) do
     if entity.valid then
       target = entity
+      break
     else
       targets[k] = nil
     end
