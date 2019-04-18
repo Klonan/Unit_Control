@@ -1443,36 +1443,6 @@ local unit_follow = function(unit_data)
 end
 
 local register_to_attack = function(unit_data)
-
-  local targets = unit_data.command_queue[1].targets
-  local target
-  for k, entity in pairs (targets) do
-    if (entity and entity.valid) then
-      target = entity
-      break
-    else
-      targets[k] = nil
-    end
-  end
-
-  if not target then
-    table.remove(unit_data.command_queue, 1)
-    process_command_queue(unit_data)
-    return
-  end
-
-  local unit = unit_data.entity
-  if unit and unit.valid then
-    set_command(unit_data,
-    {
-      type = defines.command.attack,
-      distraction = defines.distraction.none,
-      do_separation = true,
-      target = target
-    })
-  end
-
-  if true then return end
   -- So actually, there is some heavy mode failure, most likely due to this
   -- However I don't think in a real game it will actually desync.
   local targets = unit_data.command_queue[1].targets
@@ -1796,7 +1766,7 @@ local process_attack_register = function()
 end
 
 local on_tick = function(event)
-  --process_attack_register()
+  process_attack_register()
   check_refresh_gui()
 end
 
