@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.8
+Date: 2019-04-18
+  Changes:
+    - Attack-move will now target all enemy structures, not just military structures.
+    - Fixes some bugs probably.
+---------------------------------------------------------------------------------------------------
 Version: 0.1.7
 Date: 2019-04-13
   Changes:
