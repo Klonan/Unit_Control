@@ -485,7 +485,7 @@ end
 local reset_rendering = function()
   rendering.clear()
   for k, unit_data in pairs (script_data.units) do
-    local unit = unit_data.unit
+    local unit = unit_data.entity
     if unit and unit.valid then
       add_unit_indicators(unit_data)
       unit_data.selection_indicators = nil
