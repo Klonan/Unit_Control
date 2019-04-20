@@ -312,6 +312,7 @@ local update_selection_indicators = function(unit_data)
   end
 
   local unit = unit_data.entity
+  if not (unit and unit.valid) then return end
 
   unit_data.selection_indicator = unit.surface.create_entity
   {
@@ -579,36 +580,42 @@ local gui_actions =
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
     player.clean_cursor()
+    if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_move_tool}
   end,
   patrol_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
     player.clean_cursor()
+    if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_patrol_tool}
   end,
   attack_move_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
     player.clean_cursor()
+    if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_attack_move_tool}
   end,
   attack_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
     player.clean_cursor()
+    if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_attack_tool}
   end,
   force_attack_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
     player.clean_cursor()
+    if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_force_attack_tool}
   end,
   follow_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
     player.clean_cursor()
+    if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_follow_tool}
   end,
   hold_position_button = function(event)
