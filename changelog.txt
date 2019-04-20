@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.13
+Date: 2019-04-20
+  Changes:
+    - For performance reasons, unit selection and target indication are done with highlight box entities instead of the fancy script rendering.
+---------------------------------------------------------------------------------------------------
 Version: 0.1.12
 Date: 2019-04-18
   Changes:

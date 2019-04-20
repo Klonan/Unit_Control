@@ -17,6 +17,8 @@ local script_data =
 
 local registered_to_attack = {}
 
+local empty_position = {0,0}
+
 local next_command_type =
 {
   move = 1,
@@ -236,12 +238,17 @@ local add_target_indicator = function(unit_data)
 
   indicator_data.targeting_me[unit_data.entity.unit_number] = true
 
-  local indicators = indicator_data.indicators
+  local indicator = indicator_data.indicator
 
-  if not indicators then
-    indicators = {}
-    indicator_data.indicators = indicators
-    highlight_box(indicators, {r = 1}, target, target.prototype.selection_box, {player}, target.surface)
+  if not (indicator and indicator.valid) then
+    indicator = target.surface.create_entity
+    {
+      name = "highlight-box", box_type = "not-allowed",
+      target = target, render_player_index = player,
+      position = empty_position,
+      blink_interval = 0
+    }
+    indicator_data.indicator = indicator
   end
 
 end
@@ -267,10 +274,14 @@ remove_target_indicator = function(unit_data)
   local next_index = next(indicator_data.targeting_me)
   if next_index then return end
 
-  local destroy = rendering.destroy
+  --From an old version. Can remove in a few versions...
+  indicator_data.indicators = nil
 
-  for k, bool in pairs (indicator_data.indicators) do
-    destroy(k)
+  local indicator = indicator_data.indicator
+
+  if indicator and indicator.valid then
+    indicator.destroy()
+    indicator_data.indicator = nil
   end
 
   target_indicators[player] = nil
@@ -283,47 +294,33 @@ local make_unit_gui
 local update_selection_indicators = function(unit_data)
   --game.print("Updating selection indicators")
 
-  if not unit_data.selection_indicators then
-    unit_data.selection_indicators = {}
-    local unit = unit_data.entity
-    local surface = unit.surface
-    highlight_box(unit_data.selection_indicators, {g = 1}, unit, unit.prototype.selection_box, nil, surface)
-  end
-
   local player = unit_data.player
 
+  local indicator = unit_data.selection_indicator
+
   if not player then
-    if not unit_data.selection_hidden then
-      local set_visible = rendering.set_visible
-      for k, bool in pairs (unit_data.selection_indicators) do
-        set_visible(k, false)
-      end
-      unit_data.selection_hidden = true
+    if indicator and indicator.valid then
+      indicator.destroy()
+      unit_data.selection_indicator = nil
     end
     return
   end
 
-  players = {unit_data.player}
-
-  if unit_data.selection_hidden then
-    local set_visible = rendering.set_visible
-    for k, bool in pairs (unit_data.selection_indicators) do
-      set_visible(k, true)
-    end
-    unit_data.selection_hidden = nil
-  end
-
-  local last_player = unit_data.last_selection_player
-  if last_player and last_player == player then
-    --game.print("Same as last time, don't update")
+  if indicator and indicator.valid then
+    indicator.render_player = player
     return
   end
-  unit_data.last_selection_player = player
 
-  local set_players = rendering.set_players
-  for k, bool in pairs (unit_data.selection_indicators) do
-    set_players(k, players)
-  end
+  local unit = unit_data.entity
+
+  unit_data.selection_indicator = unit.surface.create_entity
+  {
+    name = "highlight-box", box_type = "copy",
+    target = unit, render_player_index = player,
+    position = empty_position,
+    blink_interval = 0
+  }
+
 end
 
 local clear_indicators = function(unit_data)
@@ -374,80 +371,6 @@ local get_attack_range = function(prototype)
   local attack_parameters = prototype.attack_parameters
   if not attack_parameters then return end
   return attack_parameters.range
-end
-
-highlight_box = function(indicators, box_color, source, box, players, surface)
-  local indicators = indicators
-  local draw_line = rendering.draw_line
-  local insert = insert
-  local width = 1
-  local corner_length = util.radius(box) * 0.25
-  local from_offset = {true, true}
-  local to_offset = {true, true}
-  local params =
-  {
-    color = box_color,
-    width = width,
-    from = source,
-    to = source,
-    from_offset = from_offset,
-    to_offset = to_offset,
-    surface = surface,
-    players = players
-  }
-
-  local ltx = box.left_top.x
-  local lty = box.left_top.y
-  local rbx = box.right_bottom.x
-  local rby = box.right_bottom.y
-
-  from_offset[1] = ltx
-  from_offset[2] = lty
-  to_offset[1] = ltx
-  to_offset[2] = lty + corner_length
-  indicators[draw_line(params)] = true
-
-  from_offset[1] = ltx
-  from_offset[2] = lty
-  to_offset[1] = ltx + corner_length
-  to_offset[2] = lty
-  indicators[draw_line(params)] = true
-
-  from_offset[1] = rbx
-  from_offset[2] = lty
-  to_offset[1] = rbx
-  to_offset[2] = lty + corner_length
-  indicators[draw_line(params)] = true
-
-  from_offset[1] = rbx
-  from_offset[2] = lty
-  to_offset[1] = rbx - corner_length
-  to_offset[2] = lty
-  indicators[draw_line(params)] = true
-
-  from_offset[1] = ltx
-  from_offset[2] = rby
-  to_offset[1] = ltx
-  to_offset[2] = rby - corner_length
-  indicators[draw_line(params)] = true
-
-  from_offset[1] = ltx
-  from_offset[2] = rby
-  to_offset[1] = ltx + corner_length
-  to_offset[2] = rby
-  indicators[draw_line(params)] = true
-
-  from_offset[1] = rbx
-  from_offset[2] = rby
-  to_offset[1] = rbx
-  to_offset[2] = rby - corner_length
-  indicators[draw_line(params)] = true
-
-  from_offset[1] = rbx
-  from_offset[2] = rby
-  to_offset[1] = rbx - corner_length
-  to_offset[2] = rby
-  indicators[draw_line(params)] = true
 end
 
 add_unit_indicators = function(unit_data)
@@ -556,6 +479,19 @@ add_unit_indicators = function(unit_data)
 
   end
 
+end
+
+local reset_rendering = function()
+  rendering.clear()
+  for k, unit_data in pairs (script_data.units) do
+    local unit = unit_data.unit
+    if unit and unit.valid then
+      add_unit_indicators(unit_data)
+      unit_data.selection_indicators = nil
+    else
+      script_data.units[k] = nil
+    end
+  end
 end
 
 local stop = {type = defines.command.stop}
@@ -2015,8 +1951,8 @@ unit_control.on_configuration_changed = function(configuration_changed_data)
   script_data.marked_for_refresh = script_data.marked_for_refresh or {}
   script_data.last_selection_tick = script_data.last_selection_tick or {}
   script_data.target_indicators = script_data.target_indicators or {}
-
   set_map_settings()
+  reset_rendering()
 end
 
 unit_control.get_events = function() return events end
