@@ -340,6 +340,7 @@ local is_idle = function(unit_number)
 end
 
 local deselect_units = function(unit_data)
+  if not unit_data then return end
   remove_target_indicator(unit_data)
   if unit_data.player then
     script_data.marked_for_refresh[unit_data.player] = true
