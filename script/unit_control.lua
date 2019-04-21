@@ -1758,6 +1758,7 @@ local on_entity_settings_pasted = function(event)
   if not unit_data then return end
   local copy = util.copy(unit_data)
   copy.entity = destination
+  copy.player = nil
   script_data.units[destination.unit_number] = copy
 end
 
