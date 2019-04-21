@@ -311,7 +311,7 @@ local update_selection_indicators = function(unit_data)
   end
 
   local unit = unit_data.entity
-  if not (unit and unit.valid) then return end
+  if not (unit and unit.valid) then game.print("NOT VALID WTF IN UPDATE SELECTION INDICATOR") return end
 
   unit_data.selection_indicator = unit.surface.create_entity
   {
@@ -324,7 +324,6 @@ local update_selection_indicators = function(unit_data)
 end
 
 local clear_indicators = function(unit_data)
-  update_selection_indicators(unit_data)
   if not unit_data.indicators then return end
   local destroy = rendering.destroy
   for indicator, bool in pairs (unit_data.indicators) do
@@ -340,12 +339,13 @@ local is_idle = function(unit_number)
 end
 
 local deselect_units = function(unit_data)
-  if not unit_data then return end
+  --if not unit_data then return end
   remove_target_indicator(unit_data)
   if unit_data.player then
     script_data.marked_for_refresh[unit_data.player] = true
     unit_data.player = nil
   end
+  update_selection_indicators(unit_data)
   clear_indicators(unit_data)
 
   --local entity = unit_data.entity
@@ -376,6 +376,7 @@ end
 
 add_unit_indicators = function(unit_data)
 
+  update_selection_indicators(unit_data)
   clear_indicators(unit_data)
   add_target_indicator(unit_data)
 
@@ -383,10 +384,13 @@ add_unit_indicators = function(unit_data)
 
   local player = unit_data.player
   if not player then return end
+  local unit = unit_data.entity
+  if not unit and unit.valid then return end
   local indicators = {}
   unit_data.indicators = indicators
 
-  local unit = unit_data.entity
+
+
   local surface = unit.surface
   local players = {unit_data.player}
 
@@ -837,9 +841,9 @@ local unit_selection = function(event)
   local force = player.force
   local area = event.area
   local center = util.center(area)
-  local index = player.index
+  local player_index = player.index
   local units = script_data.units
-  local group = get_selected_units(index)
+  local group = get_selected_units(player_index)
   if not append then
     for unit_number, ent in pairs (group) do
       deselect_units(units[unit_number])
@@ -856,27 +860,34 @@ local unit_selection = function(event)
   --profiler = game.create_profiler()
   for k, entity in pairs (entities) do
     if not map[entity.name] then
+
       local unit_index = entity.unit_number
-      local unit_data = units[unit_index]
-      deregister_unit(entity)
       group[unit_index] = entity
-      units[unit_index] = unit_data or
-      {
-        entity = entity,
-        command_queue = {},
-        idle = true
-      }
-      units[unit_index].group = group
-      units[unit_index].player = index
-      add_unit_indicators(units[unit_index])
+
+      local unit_data = units[unit_index]
+      if unit_data then
+        deselect_units(unit_data)
+      else
+        unit_data =
+        {
+          entity = entity,
+          command_queue = {},
+          idle = true
+        }
+        units[unit_index] = unit_data
+      end
+      unit_data.entity = entity
+      unit_data.group = group
+      unit_data.player = player_index
+      add_unit_indicators(unit_data)
     end
   end
   --print_profiler()
-  script_data.selected_units[index] = group
+  script_data.selected_units[player_index] = group
 
-  local frame = get_frame(player.index) or player.gui.left.add{type = "frame", direction = "vertical", style = "quick_bar_window_frame"}
-  script_data.open_frames[player.index] = frame
-  script_data.last_selection_tick[player.index] = event.tick
+  local frame = get_frame(player_index) or player.gui.left.add{type = "frame", direction = "vertical", style = "quick_bar_window_frame"}
+  script_data.open_frames[player_index] = frame
+  script_data.last_selection_tick[player_index] = event.tick
   make_unit_gui(player)
 end
 
@@ -1745,7 +1756,9 @@ local on_entity_settings_pasted = function(event)
   deregister_unit(destination)
   local unit_data = script_data.units[source.unit_number]
   if not unit_data then return end
-  script_data.units[destination.unit_number] = util.copy(unit_data)
+  local copy = util.copy(unit_data)
+  copy.entity = destination
+  script_data.units[destination.unit_number] = copy
 end
 
 local on_player_removed = function(event)
