@@ -12,10 +12,9 @@ local script_data =
   debug = false,
   marked_for_refresh = {},
   last_selection_tick = {},
-  target_indicators = {}
+  target_indicators = {},
+  attack_register = {}
 }
-
-local registered_to_attack = {}
 
 local empty_position = {0,0}
 
@@ -1387,15 +1386,7 @@ local unit_follow = function(unit_data)
 end
 
 local register_to_attack = function(unit_data)
-  -- So actually, there is some heavy mode failure, most likely due to this
-  -- However I don't think in a real game it will actually desync.
-  local targets = unit_data.command_queue[1].targets
-  local register = registered_to_attack[targets]
-  if not register then
-    register = {}
-    registered_to_attack[targets] = register
-  end
-  insert(register, unit_data)
+  insert(script_data.attack_register, unit_data)
 end
 
 
@@ -1403,13 +1394,13 @@ local make_attack_command = function(group, entities, append)
   local entities = entities
   if #entities == 0 then return end
   local script_data = script_data.units
+  local next_command =
+  {
+    command_type = next_command_type.attack,
+    targets = entities
+  }
   for unit_number, unit in pairs (group) do
     local commandable = (unit.type == "unit")
-    local next_command =
-    {
-      command_type = next_command_type.attack,
-      targets = entities
-    }
     local unit_data = script_data[unit_number]
     if append then
       table.insert(unit_data.command_queue, next_command)
@@ -1665,13 +1656,13 @@ local check_refresh_gui = function()
 end
 
 local bulk_attack_closest = function(entities, group)
-  --profiler = game.create_profiler()
+
   for k, entity in pairs (entities) do
     if not (entity.valid and entity.get_health_ratio() > 0) then
       entities[k] = nil
     end
   end
-  --print_profiler("Checked valid")
+
   local index, top = next(entities)
   if not index then
     for k, unit_data in pairs (group) do
@@ -1701,16 +1692,33 @@ local bulk_attack_closest = function(entities, group)
   --print_profiler("Commands set " .. count)
 end
 
-local process_attack_register = function()
-  if not next(registered_to_attack) then return end
-  for entities, group in pairs (registered_to_attack) do
+local process_attack_register = function(tick)
+  if tick % 31 ~= 0 then return end
+  local register = script_data.attack_register
+  if not next(register) then return end
+  script_data.attack_register = {}
+
+  local groups = {}
+
+  for k, unit_data in pairs (register) do
+    local command = unit_data.command_queue[1]
+    if command then
+      local targets = command.targets
+      if targets then
+        groups[targets] = groups[targets] or {}
+        insert(groups[targets], unit_data)
+      end
+    end
+  end
+
+  for entities, group in pairs (groups) do
     bulk_attack_closest(entities, group)
   end
-  registered_to_attack = {}
+
 end
 
 local on_tick = function(event)
-  process_attack_register()
+  process_attack_register(event.tick)
   check_refresh_gui()
 end
 
@@ -1959,6 +1967,7 @@ unit_control.on_configuration_changed = function(configuration_changed_data)
   script_data.marked_for_refresh = script_data.marked_for_refresh or {}
   script_data.last_selection_tick = script_data.last_selection_tick or {}
   script_data.target_indicators = script_data.target_indicators or {}
+  script_data.attack_register = script_data.attack_register or {}
   set_map_settings()
   reset_rendering()
 end
