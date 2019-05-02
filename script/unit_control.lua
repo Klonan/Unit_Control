@@ -487,7 +487,7 @@ add_unit_indicators = function(unit_data)
 end
 
 local reset_rendering = function()
-  rendering.clear()
+  rendering.clear("Unit_Control")
   for k, unit_data in pairs (script_data.units) do
     local unit = unit_data.entity
     if unit and unit.valid then
