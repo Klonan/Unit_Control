@@ -3,6 +3,7 @@ Version: 0.1.21
 Date: 2019-04-21
   Changes:
     - 'is_deployer' checking will now work with all entity types.
+    - Fix for rename of "player" to "character".
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.19
 Date: 2019-04-21

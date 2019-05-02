@@ -1282,7 +1282,7 @@ local directions =
 }
 
 local random = math.random
-local follow_range = 10
+local follow_range = 16
 local unit_follow = function(unit_data)
   --copy pasta from construction drone
 
@@ -1324,7 +1324,7 @@ local unit_follow = function(unit_data)
     ["artillery-wagon"] = true
   }
 
-  if target_type == "player" then
+  if target_type == "character" then
     if target.vehicle then
       target = target.vehicle
       target_type = target.type
@@ -1350,7 +1350,7 @@ local unit_follow = function(unit_data)
         speed = math.min(unit.prototype.speed, target_speed * (check_time / (check_time - 1)))
       })
     end
-  elseif target_type == "player" then
+  elseif target_type == "character" then
     local state = target.walking_state
     if state.walking then
       local offset = directions[state.direction]
