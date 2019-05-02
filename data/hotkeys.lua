@@ -85,6 +85,27 @@ local queue_hold_position =
   consuming = "game-only"
 }
 
+local quick_unit_selection =
+{
+  type = "custom-input",
+  name = tools.unit_selection_tool,
+  localised_name = {tools.unit_selection_tool},
+  key_sequence = "ALT + mouse-button-1",
+  consuming = "game-only",
+  item_to_create = tools.unit_selection_tool,
+  action = "create-blueprint-item"
+}
+
+local quick_deployer_selection =
+{
+  type = "custom-input",
+  name = tools.deployer_selection_tool,
+  localised_name = {tools.deployer_selection_tool},
+  key_sequence = "ALT + mouse-button-2",
+  consuming = "game-only",
+  item_to_create = tools.deployer_selection_tool,
+  action = "create-blueprint-item"
+}
 
 data:extend
 {
@@ -96,5 +117,7 @@ data:extend
   stop,
   queue_stop,
   hold_position,
-  queue_hold_position
+  queue_hold_position,
+  quick_unit_selection,
+  quick_deployer_selection
 }

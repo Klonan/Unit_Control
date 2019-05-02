@@ -2,6 +2,8 @@
 Version: 0.1.21
 Date: 2019-04-21
   Changes:
+    - Added ALT + LMB hotkey for getting a unit selection tool.
+    - Added ALT + RMB hotkey for getting a deployer selection tool.
     - 'is_deployer' checking will now work with all entity types.
     - Fix for rename of "player" to "character".
 ---------------------------------------------------------------------------------------------------
