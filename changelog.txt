@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.22
+Date: 2019-05-07
+  Changes:
+    - Added SHIFT + ALT + LMB hotkey for selecting all units.
+    - Added SHIFT + ALT + RMB hotkey for selecting all deployers.
+---------------------------------------------------------------------------------------------------
 Version: 0.1.21
 Date: 2019-04-21
   Changes:

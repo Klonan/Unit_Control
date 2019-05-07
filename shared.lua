@@ -9,7 +9,9 @@ data.hotkeys =
   stop = "stop",
   queue_stop = "queue-stop",
   hold_position = "hold-position",
-  queue_hold_position = "queue-hold-position"
+  queue_hold_position = "queue-hold-position",
+  select_all_units = "select-all-units",
+  select_all_deployers = "select-all-deployers",
 }
 
 data.unit_tools =

@@ -107,6 +107,24 @@ local quick_deployer_selection =
   action = "create-blueprint-item"
 }
 
+local select_all_units =
+{
+  type = "custom-input",
+  name = hotkeys.select_all_units,
+  localised_name = {hotkeys.select_all_units},
+  key_sequence = "SHIFT + ALT + mouse-button-1",
+  consuming = "game-only"
+}
+
+local select_all_deployers =
+{
+  type = "custom-input",
+  name = hotkeys.select_all_deployers,
+  localised_name = {hotkeys.select_all_deployers},
+  key_sequence = "SHIFT + ALT + mouse-button-2",
+  consuming = "game-only"
+}
+
 data:extend
 {
   become_an_hero,
@@ -119,5 +137,7 @@ data:extend
   hold_position,
   queue_hold_position,
   quick_unit_selection,
-  quick_deployer_selection
+  quick_deployer_selection,
+  select_all_units,
+  select_all_deployers
 }

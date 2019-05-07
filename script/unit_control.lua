@@ -831,33 +831,13 @@ local select_similar_nearby = function(entity)
   return entity.surface.find_entities_filtered{area = area, force = entity.force, name = entity.name}
 end
 
-local unit_selection = function(event)
-  local entities = event.entities
-  if not entities then return end
-  local append = (event.name == defines.events.on_player_alt_selected_area)
-  local player = game.players[event.player_index]
-  if not (player and player.valid) then return end
-  local surface = player.surface
-  local force = player.force
-  local area = event.area
-  local center = util.center(area)
+local process_unit_selection = function(entities, player)
+
   local player_index = player.index
-  local units = script_data.units
-  local group = get_selected_units(player_index)
-  if not append then
-    for unit_number, ent in pairs (group) do
-      deselect_units(units[unit_number])
-    end
-    group = {}
-  end
-
-  local first_index, first = next(entities)
-  if is_double_click(event) and first then
-    entities = select_similar_nearby(first)
-  end
-
   local map = script_data.unit_unselectable
-  --profiler = game.create_profiler()
+  local group = get_selected_units(player_index)
+  local units = script_data.units
+
   for k, entity in pairs (entities) do
     if not map[entity.name] then
 
@@ -887,8 +867,41 @@ local unit_selection = function(event)
 
   local frame = get_frame(player_index) or player.gui.left.add{type = "frame", direction = "vertical", style = "quick_bar_window_frame"}
   script_data.open_frames[player_index] = frame
-  script_data.last_selection_tick[player_index] = event.tick
+  script_data.last_selection_tick[player_index] = game.tick
   make_unit_gui(player)
+
+end
+
+local clear_selected_units = function(player)
+  local units = script_data.units
+  local group = get_selected_units(player.index)
+  for unit_number, ent in pairs (group) do
+    deselect_units(units[unit_number])
+    group[unit_number] = nil
+  end
+end
+
+local unit_selection = function(event)
+  local entities = event.entities
+  if not entities then return end
+  local append = (event.name == defines.events.on_player_alt_selected_area)
+  local player = game.players[event.player_index]
+  if not (player and player.valid) then return end
+  --local surface = player.surface
+  --local force = player.force
+  --local area = event.area
+  --local center = util.center(area)
+
+  if not append then
+    clear_selected_units(player)
+  end
+
+  local first_index, first = next(entities)
+  if is_double_click(event) and first then
+    entities = select_similar_nearby(first)
+  end
+
+  process_unit_selection(entities, player)
 end
 
 local get_offset = function(entities)
@@ -1689,7 +1702,7 @@ local bulk_attack_closest = function(entities, group)
   {
     type = defines.command.attack,
     distraction = defines.distraction.none,
-    do_separation = false,
+    do_separation = true,
     target = false
   }
 
@@ -1919,6 +1932,37 @@ local queue_hold_position_hotkey = function(event)
   hold_position_group(game.get_player(event.player_index), true)
 end
 
+local deployer_filter
+
+local get_deployer_filter = function()
+  if deployer_filter then return deployer_filter end
+  deployer_filter = {}
+  for name, prototype in pairs (game.item_prototypes[names.unit_tools.deployer_selection_tool].entity_filters) do
+    table.insert(deployer_filter, name)
+  end
+  return deployer_filter
+end
+
+local select_all_deployers_hotkey = function(event)
+  local player = game.get_player(event.player_index)
+  if not (player and player.valid) then return end
+
+  clear_selected_units(player)
+  local entities = player.surface.find_entities_filtered{force = player.force, name = get_deployer_filter()}
+  process_unit_selection(entities, player)
+
+end
+
+local select_all_units_hotkey = function(event)
+  local player = game.get_player(event.player_index)
+  if not (player and player.valid) then return end
+
+  clear_selected_units(player)
+  local entities = player.surface.find_entities_filtered{force = player.force, type = "unit"}
+  process_unit_selection(entities, player)
+
+end
+
 local events =
 {
   [defines.events.on_player_selected_area] = on_player_selected_area,
@@ -1939,6 +1983,8 @@ local events =
   [names.hotkeys.queue_stop] = queue_stop_hotkey,
   [names.hotkeys.hold_position] = hold_position_hotkey,
   [names.hotkeys.queue_hold_position] = queue_hold_position_hotkey,
+  [names.hotkeys.select_all_units] = select_all_units_hotkey,
+  [names.hotkeys.select_all_deployers] = select_all_deployers_hotkey,
   [defines.events.on_player_died] = on_player_removed,
   [defines.events.on_player_left_game] = on_player_removed,
   [defines.events.on_player_changed_force] = on_player_removed,
