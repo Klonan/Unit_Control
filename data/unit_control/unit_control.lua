@@ -9,8 +9,8 @@ local unit_selection_tool =
   localised_name = {tools.unit_selection_tool},
   selection_mode = {"same-force", "entity-with-health"},
   alt_selection_mode = {"same-force", "entity-with-health"},
-  entity_type_filters = {"unit"},
-  alt_entity_type_filters = {"unit"},
+  --entity_type_filters = {"unit"},
+  --alt_entity_type_filters = {"unit"},
   selection_cursor_box_type = "copy",
   alt_selection_cursor_box_type = "pair",
   icon = path.."unit_select.png",
@@ -21,6 +21,8 @@ local unit_selection_tool =
   selection_color = {g = 1},
   alt_selection_color = {g = 1, b = 1},
   draw_label_for_cursor_render = true,
+  entity_filters = {},
+  alt_entity_filters = {}
 }
 
 local deploy_filter = {}

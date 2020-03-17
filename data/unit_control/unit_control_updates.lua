@@ -17,3 +17,18 @@ for entity_type, bool in pairs (util.entity_types()) do
     end
   end
 end
+
+local unit_tool = data.raw["selection-tool"][tools.unit_selection_tool]
+local entity_filter = unit_tool.entity_filters
+local alt_filter = unit_tool.alt_entity_filters
+
+local entities = data.raw["unit"]
+if entities then
+  for name, entity in pairs (entities) do
+    if not entity.not_controllable then
+      log(entity.name)
+      table.insert(entity_filter, entity.name)
+      table.insert(alt_filter, entity.name)
+    end
+  end
+end
