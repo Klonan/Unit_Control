@@ -1867,8 +1867,8 @@ local set_map_settings = function()
   settings.path_finder.use_path_cache = false
   --settings.path_finder.short_cache_size = 0
   --settings.path_finder.long_cache_size = 0
-  settings.steering.moving.force_unit_fuzzy_goto_behavior = true
-  settings.steering.default.force_unit_fuzzy_goto_behavior = true
+  settings.steering.moving.force_unit_fuzzy_goto_behavior = false
+  settings.steering.default.force_unit_fuzzy_goto_behavior = false
   --settings.steering.moving.radius = 0
   --settings.steering.moving.default = 0
   settings.max_failed_behavior_count = 5
@@ -1963,39 +1963,6 @@ local select_all_units_hotkey = function(event)
 
 end
 
-local events =
-{
-  [defines.events.on_player_selected_area] = on_player_selected_area,
-  [defines.events.on_entity_settings_pasted] = on_entity_settings_pasted,
-  [defines.events.on_player_alt_selected_area] = on_player_alt_selected_area,
-  [defines.events.on_gui_click] = on_gui_click,
-  [defines.events.on_entity_died] = on_entity_removed,
-  [defines.events.on_robot_mined_entity] = on_entity_removed,
-  [defines.events.on_player_mined_entity] = on_entity_removed,
-  [defines.events.script_raised_destroy] = on_entity_removed,
-  [defines.events.on_ai_command_completed] = on_ai_command_completed,
-  [defines.events.on_tick] = on_tick,
-  --[defines.event.on_player_created] = on_player_created
-  --[defines.events[names.hotkeys.unit_move]] = gui_actions.move_button,
-  [names.hotkeys.suicide] = suicide,
-  [names.hotkeys.suicide_all] = suicide_all,
-  [names.hotkeys.stop] = stop_hotkey,
-  [names.hotkeys.queue_stop] = queue_stop_hotkey,
-  [names.hotkeys.hold_position] = hold_position_hotkey,
-  [names.hotkeys.queue_hold_position] = queue_hold_position_hotkey,
-  [names.hotkeys.select_all_units] = select_all_units_hotkey,
-  [names.hotkeys.select_all_deployers] = select_all_deployers_hotkey,
-  [defines.events.on_player_died] = on_player_removed,
-  [defines.events.on_player_left_game] = on_player_removed,
-  [defines.events.on_player_changed_force] = on_player_removed,
-  [defines.events.on_unit_added_to_group] = on_unit_added_to_group,
-  --[defines.events.on_unit_removed_from_group] = on_unit_removed_from_group,
-  [defines.events.on_player_changed_surface] = on_player_removed,
-  [defines.events.on_surface_deleted] = validate_some_stuff,
-  [defines.events.on_surface_cleared] = validate_some_stuff,
-  [defines.events.on_entity_spawned] = on_entity_spawned
-}
-
 remote.add_interface("unit_control", {
   register_unit_unselectable = function(entity_name)
     script_data.unit_unselectable[entity_name] = true
@@ -2016,18 +1983,45 @@ remote.add_interface("unit_control", {
 
 local unit_control = {}
 
+unit_control.events =
+{
+  [defines.events.on_player_selected_area] = on_player_selected_area,
+  [defines.events.on_entity_settings_pasted] = on_entity_settings_pasted,
+  [defines.events.on_player_alt_selected_area] = on_player_alt_selected_area,
+  [defines.events.on_gui_click] = on_gui_click,
+  [defines.events.on_entity_died] = on_entity_removed,
+  [defines.events.on_robot_mined_entity] = on_entity_removed,
+  [defines.events.on_player_mined_entity] = on_entity_removed,
+  [defines.events.script_raised_destroy] = on_entity_removed,
+  [defines.events.on_ai_command_completed] = on_ai_command_completed,
+  [defines.events.on_tick] = on_tick,
+
+  [names.hotkeys.suicide] = suicide,
+  [names.hotkeys.suicide_all] = suicide_all,
+  [names.hotkeys.stop] = stop_hotkey,
+  [names.hotkeys.queue_stop] = queue_stop_hotkey,
+  [names.hotkeys.hold_position] = hold_position_hotkey,
+  [names.hotkeys.queue_hold_position] = queue_hold_position_hotkey,
+  [names.hotkeys.select_all_units] = select_all_units_hotkey,
+  [names.hotkeys.select_all_deployers] = select_all_deployers_hotkey,
+  [defines.events.on_player_died] = on_player_removed,
+  [defines.events.on_player_left_game] = on_player_removed,
+  [defines.events.on_player_changed_force] = on_player_removed,
+  [defines.events.on_unit_added_to_group] = on_unit_added_to_group,
+  
+  [defines.events.on_player_changed_surface] = on_player_removed,
+  [defines.events.on_surface_deleted] = validate_some_stuff,
+  [defines.events.on_surface_cleared] = validate_some_stuff,
+  [defines.events.on_entity_spawned] = on_entity_spawned
+}
+
 unit_control.on_init = function()
   global.unit_control = script_data
   set_map_settings()
-  unit_control.on_event = handler(events)
 end
 
 unit_control.on_configuration_changed = function(configuration_changed_data)
 
-  script_data.marked_for_refresh = script_data.marked_for_refresh or {}
-  script_data.last_selection_tick = script_data.last_selection_tick or {}
-  script_data.target_indicators = script_data.target_indicators or {}
-  script_data.attack_register = script_data.attack_register or {}
   set_map_settings()
   reset_rendering()
 end
@@ -2036,7 +2030,6 @@ unit_control.get_events = function() return events end
 
 unit_control.on_load = function()
   script_data = global.unit_control
-  unit_control.on_event = handler(events)
 end
 
 return unit_control

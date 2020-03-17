@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.2.2
+Date: 2020-03-17
+  Changes:
+    - Change system of how units are determined to be selectable. Mods can now add 'not_controllable' to the unit prototype, and the selection tool won't find them.
+---------------------------------------------------------------------------------------------------
 Version: 0.2.1
 Date: 2020-03-17
   Changes:
