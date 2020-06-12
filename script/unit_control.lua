@@ -758,7 +758,7 @@ make_unit_gui = function(player)
   header_flow.add{type = "label", caption = {"unit-control"}, style = "heading_1_label"}
   local pusher = header_flow.add{type = "flow", direction = "horizontal"}
   pusher.style.horizontally_stretchable = true
-  local exit_button = header_flow.add{type = "sprite-button", style = "close_button", sprite = "utility/close_white"}
+  local exit_button = header_flow.add{type = "sprite-button", style = "frame_action_button", sprite = "utility/close_white"}
   --exit_button.style.height = 16
   --exit_button.style.width = 16
 
@@ -2008,7 +2008,7 @@ unit_control.events =
   [defines.events.on_player_left_game] = on_player_removed,
   [defines.events.on_player_changed_force] = on_player_removed,
   [defines.events.on_unit_added_to_group] = on_unit_added_to_group,
-  
+
   [defines.events.on_player_changed_surface] = on_player_removed,
   [defines.events.on_surface_deleted] = validate_some_stuff,
   [defines.events.on_surface_cleared] = validate_some_stuff,
