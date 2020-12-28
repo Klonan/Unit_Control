@@ -582,42 +582,42 @@ local gui_actions =
   move_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
-    player.clean_cursor()
+    player.clear_cursor()
     if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_move_tool}
   end,
   patrol_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
-    player.clean_cursor()
+    player.clear_cursor()
     if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_patrol_tool}
   end,
   attack_move_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
-    player.clean_cursor()
+    player.clear_cursor()
     if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_attack_move_tool}
   end,
   attack_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
-    player.clean_cursor()
+    player.clear_cursor()
     if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_attack_tool}
   end,
   force_attack_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
-    player.clean_cursor()
+    player.clear_cursor()
     if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_force_attack_tool}
   end,
   follow_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
-    player.clean_cursor()
+    player.clear_cursor()
     if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_follow_tool}
   end,
@@ -755,7 +755,8 @@ make_unit_gui = function(player)
   end
   frame.clear()
   local header_flow = frame.add{type = "flow", direction = "horizontal"}
-  header_flow.add{type = "label", caption = {"unit-control"}, style = "heading_1_label"}
+  local label = header_flow.add{type = "label", caption = {"unit-control"}, style = "heading_1_label"}
+  label.drag_target = frame
   local pusher = header_flow.add{type = "flow", direction = "horizontal"}
   pusher.style.horizontally_stretchable = true
   local exit_button = header_flow.add{type = "sprite-button", style = "frame_action_button", sprite = "utility/close_white"}
@@ -865,7 +866,7 @@ local process_unit_selection = function(entities, player)
   --print_profiler()
   script_data.selected_units[player_index] = group
 
-  local frame = get_frame(player_index) or player.gui.left.add{type = "frame", direction = "vertical", style = "quick_bar_window_frame"}
+  local frame = get_frame(player_index) or player.gui.screen.add{type = "frame", direction = "vertical", style = "quick_bar_window_frame"}
   script_data.open_frames[player_index] = frame
   script_data.last_selection_tick[player_index] = game.tick
   make_unit_gui(player)

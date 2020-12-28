@@ -25,8 +25,8 @@ local attack_move = {
   localised_name = {tools.unit_attack_move_tool},
   key_sequence = "ALT + A",
   consuming = "game-only",
-  item_to_create = tools.unit_attack_move_tool,
-  action = "create-blueprint-item"
+  item_to_spawn = tools.unit_attack_move_tool,
+  action = "spawn-item"
 }
 
 local move = {
@@ -35,8 +35,8 @@ local move = {
   localised_name = {tools.unit_move_tool},
   key_sequence = "ALT + M",
   consuming = "game-only",
-  item_to_create = tools.unit_move_tool,
-  action = "create-blueprint-item"
+  item_to_spawn = tools.unit_move_tool,
+  action = "spawn-item"
 }
 
 local patrol = {
@@ -45,8 +45,8 @@ local patrol = {
   localised_name = {tools.unit_patrol_tool},
   key_sequence = "ALT + P",
   consuming = "game-only",
-  item_to_create = tools.unit_patrol_tool,
-  action = "create-blueprint-item"
+  item_to_spawn = tools.unit_patrol_tool,
+  action = "spawn-item"
 }
 
 local stop =
@@ -92,8 +92,8 @@ local quick_unit_selection =
   localised_name = {tools.unit_selection_tool},
   key_sequence = "ALT + mouse-button-1",
   consuming = "game-only",
-  item_to_create = tools.unit_selection_tool,
-  action = "create-blueprint-item"
+  item_to_spawn = tools.unit_selection_tool,
+  action = "spawn-item"
 }
 
 local quick_deployer_selection =
@@ -103,8 +103,8 @@ local quick_deployer_selection =
   localised_name = {tools.deployer_selection_tool},
   key_sequence = "ALT + mouse-button-2",
   consuming = "game-only",
-  item_to_create = tools.deployer_selection_tool,
-  action = "create-blueprint-item"
+  item_to_spawn = tools.deployer_selection_tool,
+  action = "spawn-item"
 }
 
 local select_all_units =

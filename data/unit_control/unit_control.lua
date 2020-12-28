@@ -16,7 +16,7 @@ local unit_selection_tool =
   icon = path.."unit_select.png",
   icon_size = 128,
   stack_size = 1,
-  flags = {"not-stackable"},
+  flags = {"not-stackable", "spawnable"},
   show_in_library = true,
   selection_color = {g = 1},
   alt_selection_color = {g = 1, b = 1},
@@ -45,7 +45,7 @@ local deployer_selection_tool =
   icon = path.."deployer_select.png",
   icon_size = 128,
   stack_size = 1,
-  flags = {"not-stackable"},
+  flags = {"not-stackable", "spawnable"},
   show_in_library = true,
   selection_color = {g = 1},
   alt_selection_color = {g = 1, b = 1},
@@ -74,7 +74,7 @@ local unit_move_tool =
   icon = path.."unit_move_tool.png",
   icon_size = 1,
   stack_size = 1,
-  flags = {"only-in-cursor", "not-stackable"},
+  flags = {"only-in-cursor", "not-stackable", "spawnable"},
   selection_color = {g = 1},
   alt_selection_color = {g = 1},
   mouse_cursor = "move-cursor"
@@ -101,7 +101,7 @@ local unit_patrol_tool =
   icon = path.."unit_move_tool.png",
   icon_size = 1,
   stack_size = 1,
-  flags = {"only-in-cursor", "not-stackable"},
+  flags = {"only-in-cursor", "not-stackable", "spawnable"},
   selection_color = {a = 0},
   alt_selection_color = {a = 0},
   mouse_cursor = "patrol-cursor"
@@ -136,7 +136,7 @@ local unit_attack_move_tool =
   icon = path.."unit_attack_move_tool.png",
   icon_size = 1,
   stack_size = 1,
-  flags = {"only-in-cursor", "not-stackable"},
+  flags = {"only-in-cursor", "not-stackable", "spawnable"},
   selection_color = {r = 1},
   alt_selection_color = {r = 1},
   mouse_cursor = "attack-move-cursor"
@@ -155,7 +155,7 @@ local unit_attack_tool =
   icon = path.."unit_attack_tool.png",
   icon_size = 258,
   stack_size = 1,
-  flags = {"only-in-cursor", "not-stackable"},
+  flags = {"only-in-cursor", "not-stackable", "spawnable"},
   selection_color = {r = 1},
   alt_selection_color = {r = 1},
 }
@@ -172,7 +172,7 @@ local unit_force_attack_tool =
   icon = path.."unit_attack_tool.png",
   icon_size = 258,
   stack_size = 1,
-  flags = {"only-in-cursor", "not-stackable"},
+  flags = {"only-in-cursor", "not-stackable", "spawnable"},
   selection_color = {r = 1},
   alt_selection_color = {r = 1},
 }]]
@@ -189,7 +189,7 @@ local unit_force_attack_tool =
   icon = path.."unit_attack_tool.png",
   icon_size = 258,
   stack_size = 1,
-  flags = {"only-in-cursor", "not-stackable"},
+  flags = {"only-in-cursor", "not-stackable", "spawnable"},
   selection_color = {g = 1},
   alt_selection_color = {g = 1},
 }]]
@@ -199,10 +199,10 @@ local select_units_shortcut =
   type = "shortcut",
   name = tools.select_units_shortcut,
   order = "y",
-  action = "create-blueprint-item",
+  action = "spawn-item",
   localised_name = {tools.unit_selection_tool},
   --technology_to_unlock = "construction-robotics",
-  item_to_create = tools.unit_selection_tool,
+  item_to_spawn = tools.unit_selection_tool,
   style = "blue",
   icon =
   {
@@ -218,10 +218,10 @@ local select_deployers_shortcut =
   type = "shortcut",
   name = tools.select_deployers_shortcut,
   order = "z",
-  action = "create-blueprint-item",
+  action = "spawn-item",
   localised_name = {tools.deployer_selection_tool},
   --technology_to_unlock = "construction-robotics",
-  item_to_create = tools.deployer_selection_tool,  style = "red",
+  item_to_spawn = tools.deployer_selection_tool,  style = "red",
   icon =
   {
     filename = path.."deployer_select_shortcut.png",

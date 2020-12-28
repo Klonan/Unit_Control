@@ -1,11 +1,11 @@
 {
   "name": "Unit_Control",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "title": "Unit Control",
   "author": "Klonan",
   "contact": "",
   "homepage": "",
   "description": "Control of Units",
-  "dependencies": ["base >= 0.18.31"],
-  "factorio_version": "0.18"
+  "dependencies": ["base >= 1.1.0"],
+  "factorio_version": "1.1"
 }
