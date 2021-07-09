@@ -26,34 +26,6 @@ local unit_selection_tool =
   mouse_cursor = ""
 }
 
-local deploy_filter = {}
---Until someone complains, by default all unit spawners will be 'deployers'.
-for name, prototype in pairs (data.raw["unit-spawner"]) do
-  table.insert(deploy_filter, name)
-end
-
-local deployer_selection_tool =
-{
-  type = "selection-tool",
-  name = tools.deployer_selection_tool,
-  localised_name = {tools.deployer_selection_tool},
-  selection_mode = {"same-force", "entity-with-health"},
-  alt_selection_mode = {"same-force", "entity-with-health"},
-  entity_filters = deploy_filter,
-  alt_entity_filters = deploy_filter,
-  selection_cursor_box_type = "copy",
-  alt_selection_cursor_box_type = "pair",
-  icon = path.."deployer_select.png",
-  icon_size = 128,
-  stack_size = 1,
-  flags = {"not-stackable", "spawnable"},
-  show_in_library = true,
-  selection_color = {g = 1},
-  alt_selection_color = {g = 1, b = 1},
-  draw_label_for_cursor_render = true,
-}
-
-
 local move_cursor =
 {
   name = "move-cursor",
@@ -214,27 +186,8 @@ local select_units_shortcut =
   }
 }
 
-local select_deployers_shortcut =
-{
-  type = "shortcut",
-  name = tools.select_deployers_shortcut,
-  order = "z",
-  action = "spawn-item",
-  localised_name = {tools.deployer_selection_tool},
-  --technology_to_unlock = "construction-robotics",
-  item_to_spawn = tools.deployer_selection_tool,  style = "red",
-  icon =
-  {
-    filename = path.."deployer_select_shortcut.png",
-    size = 128,
-    priority = "extra-high-no-scale",
-    flags = {"icon"}
-  }
-}
-
 data:extend{
   unit_selection_tool,
-  deployer_selection_tool,
   move_confirm_sound,
   move_cursor,
   unit_move_tool,
@@ -242,9 +195,5 @@ data:extend{
   unit_patrol_tool,
   attack_move_cursor,
   unit_attack_move_tool,
-  --unit_force_attack_tool,
-  --unit_follow_tool,
-  --unit_attack_tool,
-  select_units_shortcut,
-  select_deployers_shortcut
+  select_units_shortcut
 }
