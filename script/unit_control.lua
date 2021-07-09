@@ -1986,6 +1986,12 @@ local mouse_click = function(event)
   local player = game.get_player(event.player_index)
   local stack = player.cursor_stack
   if not stack then return end
+  if stack.valid_for_read then return end
+
+  if player.selected then return end
+
+  if player.opened then return end
+
   stack.set_stack({name = "select-units"})
   player.start_selection(event.cursor_position, "select")
 end
