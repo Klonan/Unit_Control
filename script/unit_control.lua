@@ -1513,7 +1513,6 @@ end
 local selected_area_actions =
 {
   [tool_names.unit_selection_tool] = unit_selection,
-  [tool_names.deployer_selection_tool] = unit_selection,
   [tool_names.unit_move_tool] = multi_move_selection,
   [tool_names.unit_patrol_tool] = patrol_units,
   [tool_names.unit_attack_move_tool] = multi_attack_selection,
@@ -1525,7 +1524,6 @@ local selected_area_actions =
 local alt_selected_area_actions =
 {
   [tool_names.unit_selection_tool] = unit_selection,
-  [tool_names.deployer_selection_tool] = unit_selection,
   [tool_names.unit_move_tool] = multi_move_selection,
   [tool_names.unit_patrol_tool] = patrol_units,
   [tool_names.unit_attack_move_tool] = multi_attack_selection,
@@ -1933,27 +1931,6 @@ local queue_hold_position_hotkey = function(event)
   hold_position_group(game.get_player(event.player_index), true)
 end
 
-local deployer_filter
-
-local get_deployer_filter = function()
-  if deployer_filter then return deployer_filter end
-  deployer_filter = {}
-  for name, prototype in pairs (game.item_prototypes[names.unit_tools.deployer_selection_tool].entity_filters) do
-    table.insert(deployer_filter, name)
-  end
-  return deployer_filter
-end
-
-local select_all_deployers_hotkey = function(event)
-  local player = game.get_player(event.player_index)
-  if not (player and player.valid) then return end
-
-  clear_selected_units(player)
-  local entities = player.surface.find_entities_filtered{force = player.force, name = get_deployer_filter()}
-  process_unit_selection(entities, player)
-
-end
-
 local select_all_units_hotkey = function(event)
   local player = game.get_player(event.player_index)
   if not (player and player.valid) then return end
@@ -1982,7 +1959,8 @@ remote.add_interface("unit_control", {
   end
 })
 
-local mouse_click = function(event)
+local left_click = function(event)
+
   local player = game.get_player(event.player_index)
   local stack = player.cursor_stack
   if not stack then return end
@@ -1994,6 +1972,21 @@ local mouse_click = function(event)
 
   stack.set_stack({name = "select-units"})
   player.start_selection(event.cursor_position, "select")
+end
+
+local shift_left_click = function(event)
+
+  local player = game.get_player(event.player_index)
+  local stack = player.cursor_stack
+  if not stack then return end
+  if stack.valid_for_read then return end
+
+  if player.selected then return end
+
+  if player.opened then return end
+
+  stack.set_stack({name = "select-units"})
+  player.start_selection(event.cursor_position, "alternative-select")
 end
 
 local unit_control = {}
@@ -2017,8 +2010,6 @@ unit_control.events =
   [names.hotkeys.queue_stop] = queue_stop_hotkey,
   [names.hotkeys.hold_position] = hold_position_hotkey,
   [names.hotkeys.queue_hold_position] = queue_hold_position_hotkey,
-  [names.hotkeys.select_all_units] = select_all_units_hotkey,
-  [names.hotkeys.select_all_deployers] = select_all_deployers_hotkey,
   [defines.events.on_player_died] = on_player_removed,
   [defines.events.on_player_left_game] = on_player_removed,
   [defines.events.on_player_changed_force] = on_player_removed,
@@ -2029,11 +2020,13 @@ unit_control.events =
   [defines.events.on_surface_cleared] = validate_some_stuff,
   [defines.events.on_entity_spawned] = on_entity_spawned,
 
-  ["mouse-click"] = mouse_click
+  ["left-click"] = left_click,
+  ["shift-left-click"] = shift_left_click,
+  ["right-click"] = right_click,
 }
 
 unit_control.on_init = function()
-  global.unit_control = script_data
+  global.unit_control = global.unit_control or script_data
   set_map_settings()
 end
 
@@ -2046,7 +2039,7 @@ end
 unit_control.get_events = function() return events end
 
 unit_control.on_load = function()
-  script_data = global.unit_control
+  script_data = global.unit_control or script_data
 end
 
 return unit_control

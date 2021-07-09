@@ -96,17 +96,6 @@ local quick_unit_selection =
   action = "spawn-item"
 }
 
-local quick_deployer_selection =
-{
-  type = "custom-input",
-  name = tools.deployer_selection_tool,
-  localised_name = {tools.deployer_selection_tool},
-  key_sequence = "ALT + mouse-button-2",
-  consuming = "game-only",
-  item_to_spawn = tools.deployer_selection_tool,
-  action = "spawn-item"
-}
-
 local select_all_units =
 {
   type = "custom-input",
@@ -125,13 +114,39 @@ local select_all_deployers =
   consuming = "game-only"
 }
 
-local mouse_click =
+local left_click =
 {
   type = "custom-input",
-  name = "mouse-click",
+  name = "left-click",
   localised_name = "Mouse click",
-  key_sequence = "mouse-button-4",
-  linked_game_control = "build",
+  key_sequence = "mouse-button-1",
+  consuming = "none"
+}
+
+local shift_left_click =
+{
+  type = "custom-input",
+  name = "shift-left-click",
+  localised_name = "Mouse click",
+  key_sequence = "SHIFT + mouse-button-1",
+  consuming = "none"
+}
+
+local right_click =
+{
+  type = "custom-input",
+  name = "right-click",
+  localised_name = "Mouse click",
+  key_sequence = "mouse-button-2",
+  consuming = "none"
+}
+
+local shift_right_click =
+{
+  type = "custom-input",
+  name = "shift-right-click",
+  localised_name = "Mouse click",
+  key_sequence = "SHIFT + mouse-button-2",
   consuming = "none"
 }
 
@@ -147,8 +162,9 @@ data:extend
   hold_position,
   queue_hold_position,
   quick_unit_selection,
-  quick_deployer_selection,
   select_all_units,
-  select_all_deployers,
-  mouse_click
+  left_click,
+  right_click,
+  shift_left_click,
+  shift_right_click
 }
