@@ -125,6 +125,16 @@ local select_all_deployers =
   consuming = "game-only"
 }
 
+local mouse_click =
+{
+  type = "custom-input",
+  name = "mouse-click",
+  localised_name = "Mouse click",
+  key_sequence = "mouse-button-4",
+  linked_game_control = "build",
+  consuming = "none"
+}
+
 data:extend
 {
   become_an_hero,
@@ -139,5 +149,6 @@ data:extend
   quick_unit_selection,
   quick_deployer_selection,
   select_all_units,
-  select_all_deployers
+  select_all_deployers,
+  mouse_click
 }

@@ -14,7 +14,7 @@ local unit_selection_tool =
   selection_cursor_box_type = "copy",
   alt_selection_cursor_box_type = "pair",
   icon = path.."unit_select.png",
-  icon_size = 128,
+  icon_size = 1,
   stack_size = 1,
   flags = {"not-stackable", "spawnable"},
   show_in_library = true,
@@ -22,7 +22,8 @@ local unit_selection_tool =
   alt_selection_color = {g = 1, b = 1},
   draw_label_for_cursor_render = true,
   entity_filters = {},
-  alt_entity_filters = {}
+  alt_entity_filters = {},
+  mouse_cursor = ""
 }
 
 local deploy_filter = {}

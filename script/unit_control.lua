@@ -870,7 +870,7 @@ local process_unit_selection = function(entities, player)
   script_data.open_frames[player_index] = frame
   script_data.last_selection_tick[player_index] = game.tick
   make_unit_gui(player)
-
+  player.clear_cursor()
 end
 
 local clear_selected_units = function(player)
@@ -1982,6 +1982,14 @@ remote.add_interface("unit_control", {
   end
 })
 
+local mouse_click = function(event)
+  local player = game.get_player(event.player_index)
+  local stack = player.cursor_stack
+  if not stack then return end
+  stack.set_stack({name = "select-units"})
+  player.start_selection(event.cursor_position, "select")
+end
+
 local unit_control = {}
 
 unit_control.events =
@@ -2013,7 +2021,9 @@ unit_control.events =
   [defines.events.on_player_changed_surface] = on_player_removed,
   [defines.events.on_surface_deleted] = validate_some_stuff,
   [defines.events.on_surface_cleared] = validate_some_stuff,
-  [defines.events.on_entity_spawned] = on_entity_spawned
+  [defines.events.on_entity_spawned] = on_entity_spawned,
+
+  ["mouse-click"] = mouse_click
 }
 
 unit_control.on_init = function()
