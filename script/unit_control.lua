@@ -199,14 +199,21 @@ local set_scout_command = function(unit_data, failure, delay)
 end
 
 local get_selected_units = function(player_index)
-  local script_data = script_data.selected_units
-  local selected = script_data[player_index] or {}
+
+  local selected = script_data.selected_units[player_index]
+  if not selected then return end
+
   for unit_number, entity in pairs (selected) do
     if not entity.valid then
       selected[unit_number] = nil
     end
   end
-  script_data[player_index] = selected
+
+  if not next(selected) then
+    script_data.selected_units[player_index] = nil
+    return
+  end
+
   return selected
 end
 
@@ -746,19 +753,19 @@ make_unit_gui = function(player)
   local index = player.index
   local frame = get_frame(index)
   if not (frame and frame.valid) then return end
-  local group = get_selected_units(index)
-  if not group then return end
   util.deregister_gui(frame, script_data.button_actions)
 
-  local has_units = next(group) ~= nil
-  player.game_view_settings.update_entity_selection = not has_units
+  local group = get_selected_units(index)
 
-  if not has_units then
+  if not group then
+    player.game_view_settings.update_entity_selection = true
     frame.destroy()
     return
   end
 
+  player.game_view_settings.update_entity_selection = false
   player.selected = nil
+
   frame.clear()
   local header_flow = frame.add{type = "flow", direction = "horizontal"}
   local label = header_flow.add{type = "label", caption = {"unit-control"}, style = "heading_1_label"}
@@ -842,7 +849,7 @@ local process_unit_selection = function(entities, player)
 
   local player_index = player.index
   local map = script_data.unit_unselectable
-  local group = get_selected_units(player_index)
+  local group = get_selected_units(player_index) or {}
   local units = script_data.units
 
   for k, entity in pairs (entities) do
@@ -882,6 +889,7 @@ end
 local clear_selected_units = function(player)
   local units = script_data.units
   local group = get_selected_units(player.index)
+  if not group then return end
   for unit_number, ent in pairs (group) do
     deselect_units(units[unit_number])
     group[unit_number] = nil
@@ -1256,10 +1264,7 @@ end
 
 local patrol_units = function(event)
   local group = get_selected_units(event.player_index)
-  if not group then
-    script_data.selected_units[event.player_index] = nil
-    return
-  end
+  if not group then return end
   local player = game.players[event.player_index]
   make_patrol_command{
     position = util.center(event.area),
@@ -1493,10 +1498,8 @@ end
 
 local attack_units = function(event)
   local group = get_selected_units(event.player_index)
-  if not group then
-    script_data.selected_units[event.player_index] = nil
-    return
-  end
+  if not group then return end
+
   local append = event.name == defines.events.on_player_alt_selected_area
   make_attack_command(group, event.entities, append)
   game.get_player(event.player_index).play_sound({path = tool_names.unit_move_sound})
@@ -1504,10 +1507,8 @@ end
 
 local follow_entity = function(event)
   local group = get_selected_units(event.player_index)
-  if not group then
-    script_data.selected_units[event.player_index] = nil
-    return
-  end
+  if not group then return end
+
   local target = event.entities[1]
   if not target then return end
   local append = event.name == defines.events.on_player_alt_selected_area
@@ -1804,12 +1805,13 @@ local on_player_removed = function(event)
     frame.destroy()
   end
   script_data.open_frames[event.player_index] = nil
+
   local group = get_selected_units(event.player_index)
+  if not group then return end
+
   local units = script_data.units
-  if group then
-    for unit_number, ent in pairs (group) do
-      deselect_units(units[unit_number])
-    end
+  for unit_number, ent in pairs (group) do
+    deselect_units(units[unit_number])
   end
 end
 
@@ -2011,6 +2013,7 @@ local shift_left_click = function(event)
 end
 
 local right_click = function(event)
+  if not get_selected_units(event.player_index) then return end
   local player = game.get_player(event.player_index)
   if player.selected then return end
   if player.opened then return end
@@ -2023,6 +2026,7 @@ local right_click = function(event)
 end
 
 local shift_right_click = function(event)
+  if not get_selected_units(event.player_index) then return end
   local player = game.get_player(event.player_index)
   if player.selected then return end
   if player.opened then return end
