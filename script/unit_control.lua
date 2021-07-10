@@ -749,10 +749,16 @@ make_unit_gui = function(player)
   local group = get_selected_units(index)
   if not group then return end
   util.deregister_gui(frame, script_data.button_actions)
-  if not next(group) then
+
+  local has_units = next(group) ~= nil
+  player.game_view_settings.update_entity_selection = not has_units
+
+  if not has_units then
     frame.destroy()
     return
   end
+
+  player.selected = nil
   frame.clear()
   local header_flow = frame.add{type = "flow", direction = "horizontal"}
   local label = header_flow.add{type = "label", caption = {"unit-control"}, style = "heading_1_label"}
@@ -1116,6 +1122,23 @@ local attack_move_units = function(event)
     distraction = defines.distraction.by_anything,
     group = group,
     append = event.name == defines.events.on_player_alt_selected_area,
+    player = player
+  }
+  player.play_sound({path = tool_names.unit_move_sound})
+end
+
+local attack_move_units_to_position = function(player, position, append)
+  local group = get_selected_units(player.index)
+  if not group then
+    script_data.selected_units[player.index] = nil
+    return
+  end
+  make_move_command
+  {
+    position = position,
+    distraction = defines.distraction.by_anything,
+    group = group,
+    append = append,
     player = player
   }
   player.play_sound({path = tool_names.unit_move_sound})
@@ -1977,16 +2000,38 @@ end
 local shift_left_click = function(event)
 
   local player = game.get_player(event.player_index)
+  if player.selected then return end
+  if player.opened then return end
   local stack = player.cursor_stack
   if not stack then return end
   if stack.valid_for_read then return end
 
-  if player.selected then return end
-
-  if player.opened then return end
-
   stack.set_stack({name = "select-units"})
   player.start_selection(event.cursor_position, "alternative-select")
+end
+
+local right_click = function(event)
+  local player = game.get_player(event.player_index)
+  if player.selected then return end
+  if player.opened then return end
+  local stack = player.cursor_stack
+  if not stack then return end
+  if stack.valid_for_read then return end
+
+  attack_move_units_to_position(player, event.cursor_position)
+
+end
+
+local shift_right_click = function(event)
+  local player = game.get_player(event.player_index)
+  if player.selected then return end
+  if player.opened then return end
+  local stack = player.cursor_stack
+  if not stack then return end
+  if stack.valid_for_read then return end
+
+  attack_move_units_to_position(player, event.cursor_position, true)
+
 end
 
 local unit_control = {}
@@ -2023,6 +2068,7 @@ unit_control.events =
   ["left-click"] = left_click,
   ["shift-left-click"] = shift_left_click,
   ["right-click"] = right_click,
+  ["shift-right-click"] = shift_right_click,
 }
 
 unit_control.on_init = function()
