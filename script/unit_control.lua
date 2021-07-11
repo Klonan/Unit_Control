@@ -294,9 +294,6 @@ remove_target_indicator = function(unit_data)
 
 end
 
-local make_unit_gui
-
-
 local update_selection_indicators = function(unit_data)
   --game.print("Updating selection indicators")
 
@@ -391,8 +388,10 @@ add_unit_indicators = function(unit_data)
 
   local player = unit_data.player
   if not player then return end
+
   local unit = unit_data.entity
   if not unit and unit.valid then return end
+
   local indicators = {}
   unit_data.indicators = indicators
 
@@ -738,18 +737,18 @@ local button_map =
 
 local button_map =
 {
-  move_button = {sprite = "utility/mod_dependency_arrow", tooltip = {tool_names.unit_move_tool}},
-  patrol_button = {sprite = "utility/refresh", tooltip = {tool_names.unit_patrol_tool}},
+  move_button = {sprite = "utility/mod_dependency_arrow", tooltip = {tool_names.unit_move_tool}, style = "shortcut_bar_button_small_green"},
+  patrol_button = {sprite = "utility/refresh", tooltip = {tool_names.unit_patrol_tool}, style = "shortcut_bar_button_small_blue"},
   attack_move_button = {sprite = "utility/center", tooltip = {tool_names.unit_attack_move_tool}},
   --attack_button = {sprite = "item/"..tool_names.unit_attack_tool, tooltip = {tool_names.unit_attack_tool}},
   --force_attack_button = {sprte = "item/"..tool_names.unit_force_attack_tool, tooltip = {tool_names.unit_force_attack_tool}},
   --follow_button = {sprite = "item/"..tool_names.unit_follow_tool, tooltip = {tool_names.unit_follow_tool}},
   hold_position_button = {sprite = "utility/downloading", tooltip = {"hold-position"}},
-  stop_button = {sprite = "utility/close_black", tooltip = {"stop"}},
+  stop_button = {sprite = "utility/close_black", tooltip = {"stop"}, style = "shortcut_bar_button_small_red"},
   scout_button = {sprite = "utility/map", tooltip = {"scout"}}
 }
 
-make_unit_gui = function(player)
+local make_unit_gui = function(player)
   local index = player.index
   local frame = get_frame(index)
   if not (frame and frame.valid) then return end
@@ -763,15 +762,22 @@ make_unit_gui = function(player)
     return
   end
 
+  player.game_view_settings.update_entity_selection = true
+  player.update_selected_entity({2000000, 2000000})
+  player.clear_selected_entity()
+  player.selected = nil
   player.game_view_settings.update_entity_selection = false
+  player.clear_selected_entity()
   player.selected = nil
 
   frame.clear()
   local header_flow = frame.add{type = "flow", direction = "horizontal"}
   local label = header_flow.add{type = "label", caption = {"unit-control"}, style = "heading_1_label"}
   label.drag_target = frame
-  local pusher = header_flow.add{type = "flow", direction = "horizontal"}
+  local pusher = header_flow.add{type = "empty-widget", direction = "horizontal", style = "draggable_space_header"}
   pusher.style.horizontally_stretchable = true
+  pusher.style.height = 24 * player.display_scale
+  pusher.drag_target = frame
   local exit_button = header_flow.add{type = "sprite-button", style = "frame_action_button", sprite = "utility/close_white"}
   --exit_button.style.height = 16
   --exit_button.style.width = 16
@@ -783,23 +789,30 @@ make_unit_gui = function(player)
     local name = ent.name
     map[name] = (map[name] or 0) + 1
   end
-  local tab = frame.add{type = "table", column_count = 6}
+  local inner = frame.add{type = "frame", style = "inside_deep_frame", direction = "vertical"}
+  local spam = inner.add{type = "frame", style = "filter_scroll_pane_background_frame"}
+  local subfooter = inner.add{type = "frame", style = "subfooter_frame"}
+  subfooter.style.horizontally_stretchable = true
+  spam.style.minimal_height = 0
+  spam.style.width = 400 * player.display_scale
+  local tab = spam.add{type = "table", column_count = 10, style = "filter_slot_table"}
   local pro = game.entity_prototypes
   for name, count in pairs (map) do
     local ent = pro[name]
     local unit_button = tab.add{type = "sprite-button", sprite = "entity/"..name, tooltip = ent.localised_name, number = count, style = "slot_button"}
     util.register_gui(script_data.button_actions, unit_button, {type = "selected_units_button", unit = name})
   end
-  local butts = frame.add{type = "table", column_count = 3}
+
+  subfooter.add{type = "empty-widget"}.style.horizontally_stretchable = true
+  local butts = subfooter.add{type = "table", column_count = 6}
   for action, param in pairs (button_map) do
-    local button = butts.add{type = "sprite-button", sprite = param.sprite, tooltip = param.tooltip, style = "mini_button"}
-    button.style.height = 32 + 8
-    button.style.width = 32 + 8
+    local button = butts.add{type = "sprite-button", sprite = param.sprite, tooltip = param.tooltip, style = param.style or "shortcut_bar_button_small"}
+    button.style.height = 24 * player.display_scale
+    button.style.width = 24 * player.display_scale
     util.register_gui(script_data.button_actions, button, {type = action})
     --button.style.font = "default"
     --button.style.horizontally_stretchable = true
   end
-  butts.style.horizontal_align = "center"
 end
 
 deregister_unit = function(entity)
@@ -846,15 +859,16 @@ local select_similar_nearby = function(entity)
 end
 
 local process_unit_selection = function(entities, player)
-
+  player.clear_cursor()
   local player_index = player.index
   local map = script_data.unit_unselectable
   local group = get_selected_units(player_index) or {}
   local units = script_data.units
-
+  local types = {}
   for k, entity in pairs (entities) do
-    if not map[entity.name] then
-
+    local name = entity.name
+    if not map[name] then
+      types[name] = true
       local unit_index = entity.unit_number
       group[unit_index] = entity
 
@@ -879,11 +893,19 @@ local process_unit_selection = function(entities, player)
   --print_profiler()
   script_data.selected_units[player_index] = group
 
-  local frame = get_frame(player_index) or player.gui.screen.add{type = "frame", direction = "vertical", style = "quick_bar_window_frame"}
-  script_data.open_frames[player_index] = frame
+  local frame = get_frame(player_index)
+  if not frame then
+    frame = player.gui.screen.add{type = "frame", direction = "vertical"}
+    local width = (12 + 400 + 12) * player.display_scale
+    local size = player.display_resolution
+    local x_position = (size.width / 2) -  (width / 2)
+    local y_position = size.height  - ((200 + (math.ceil(table_size(types) / 10) * 40)) * player.display_scale)
+    frame.location = {x_position, y_position}
+    script_data.open_frames[player_index] = frame
+    player.opened = frame
+  end
   script_data.last_selection_tick[player_index] = game.tick
-  make_unit_gui(player)
-  player.clear_cursor()
+  script_data.marked_for_refresh[player_index] = true
 end
 
 local clear_selected_units = function(player)
@@ -1984,6 +2006,12 @@ remote.add_interface("unit_control", {
   end
 })
 
+local allow_selection =
+{
+  ["unit"] = true,
+  ["unit-spawner"] = true
+}
+
 local left_click = function(event)
 
   local player = game.get_player(event.player_index)
@@ -1991,9 +2019,9 @@ local left_click = function(event)
   if not stack then return end
   if stack.valid_for_read then return end
 
-  if player.selected then return end
+  if player.selected and not allow_selection[player.selected.type] then return end
 
-  if player.opened then return end
+  if player.opened ~= get_frame(event.player_index) then return end
 
   stack.set_stack({name = "select-units"})
   player.start_selection(event.cursor_position, "select")
@@ -2002,8 +2030,8 @@ end
 local shift_left_click = function(event)
 
   local player = game.get_player(event.player_index)
-  if player.selected then return end
-  if player.opened then return end
+  if player.selected and not allow_selection[player.selected.type] then return end
+  if player.opened ~= get_frame(event.player_index) then return end
   local stack = player.cursor_stack
   if not stack then return end
   if stack.valid_for_read then return end
@@ -2015,8 +2043,8 @@ end
 local right_click = function(event)
   if not get_selected_units(event.player_index) then return end
   local player = game.get_player(event.player_index)
-  if player.selected then return end
-  if player.opened then return end
+  if player.selected and not allow_selection[player.selected.type] then return end
+  if player.opened ~= get_frame(event.player_index) then return end
   local stack = player.cursor_stack
   if not stack then return end
   if stack.valid_for_read then return end
@@ -2028,14 +2056,18 @@ end
 local shift_right_click = function(event)
   if not get_selected_units(event.player_index) then return end
   local player = game.get_player(event.player_index)
-  if player.selected then return end
-  if player.opened then return end
+  if player.selected and not allow_selection[player.selected.type] then return end
+  if player.opened ~= get_frame(event.player_index) then return end
   local stack = player.cursor_stack
   if not stack then return end
   if stack.valid_for_read then return end
 
   attack_move_units_to_position(player, event.cursor_position, true)
 
+end
+
+local on_gui_closed = function(event)
+   gui_actions.exit_button(event)
 end
 
 local unit_control = {}
@@ -2052,6 +2084,7 @@ unit_control.events =
   [defines.events.script_raised_destroy] = on_entity_removed,
   [defines.events.on_ai_command_completed] = on_ai_command_completed,
   [defines.events.on_tick] = on_tick,
+  [defines.events.on_gui_closed] = on_gui_closed,
 
   [names.hotkeys.suicide] = suicide,
   [names.hotkeys.suicide_all] = suicide_all,
