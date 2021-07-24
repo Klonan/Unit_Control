@@ -1167,37 +1167,6 @@ local quick_dist = function(p1, p2)
   return (((p1.x - p2.x) * (p1.x - p2.x)) + ((p1.y - p2.y) * (p1.y - p2.y)))
 end
 
-local attack_closest = function(unit_data, entities)
-  error("NOT ANYMORE")
-  local unit = unit_data.entity
-  local position = unit.position
-  local entities = entities
-  local force = unit.force
-  local surface = unit.surface
-  if not checked_tables then checked_tables = {} end
-  if not checked_tables[entities] then
-    for k, ent in pairs (entities) do
-      if not ent.valid then
-        entities[k] = nil
-      end
-    end
-    checked_tables[entities] = true
-  end
-  unit.speed = unit.prototype.speed
-  local closest = surface.get_closest(unit.position, entities)
-  if closest and closest.valid then
-    set_command(unit_data,
-    {
-      type = defines.command.attack,
-      distraction = defines.distraction.none,
-      target = closest
-    })
-    return true
-  else
-    return false
-  end
-end
-
 local directions =
 {
   [defines.direction.north] = {0, -1},
