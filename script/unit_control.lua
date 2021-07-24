@@ -1109,58 +1109,16 @@ local make_patrol_command = function(param)
   local append = param.append
   local type = defines.command.go_to_location
   local find = surface.find_non_colliding_position
-  local index
-  local offset, radius, speed = get_offset(group)
   local insert = table.insert
+  local units = script_data.units
 
-
-  local size = table_size(group)
-  local number_of_rows = math.floor((size ^ 0.5) / 1.5)
-  local max_on_row = math.ceil(size / number_of_rows)
-  local angle = util.angle(origin, center_of_mass(group)) - (0.25 * 2 * math.pi)
-  cos = math.cos(angle)
-  sin = math.sin(angle)
-
-  local rotate = function(position)
-   local x = (position.x * cos) - (position.y * sin)
-   local y = (position.x * sin) + (position.y * cos)
-   return {x = x, y = y}
-  end
-
-  local should_ajar = {}
-  local remaining = size
-  for k = 0, number_of_rows - 1 do
-    if remaining < (max_on_row) then
-      should_ajar[k] = remaining % 2 == 0
-    else
-      should_ajar[k] = max_on_row % 2 == 0
-    end
-    remaining = remaining - (max_on_row)
-  end
-
-  local insert = table.insert
-  local current_row = 0
-  local current_column = 0
+  local i = 1
   for unit_number, entity in pairs (group) do
-    local position = {}
-    position.y = current_row
-    local something
-    if current_column % 2 == 0 then
-      something = current_column / 2
-    else
-      something = (- 1 - current_column) / 2
-    end
-    if should_ajar[current_row] then
-      something = something + 0.5
-    end
-    position.x = something
-    position.x = position.x * offset
-    position.y = position.y * offset
-    position = rotate(position)
-    local destination = {origin.x + position.x, origin.y + position.y}
-    --log(entity.unit_number.." = "..serpent.line(destination))
-    local unit_data = script_data.units[unit_number]
-    local unit = (entity.type == "unit")
+    local offset = get_move_offset(i)
+    i = i + 1
+    local destination = {origin.x + offset.x, origin.y + offset.y}
+    local unit_data = units[unit_number]
+    local is_unit = (entity.type == "unit")
     local next_destination = find(entity.name, destination, 0, 0.5)
     local patrol_command = find_patrol_comand(unit_data.command_queue)
     if patrol_command and append then
@@ -1171,30 +1129,23 @@ local make_patrol_command = function(param)
         command_type = next_command_type.patrol,
         destinations = {entity.position, next_destination},
         destination_index = "initial",
-        speed = speed
+        speed = speed,
+        do_separation = false
       }
     end
     if not append then
       unit_data.command_queue = {command}
       set_unit_not_idle(unit_data)
-      if unit then
+      if is_unit then
         process_command_queue(unit_data)
       end
-    end
-    if append and not patrol_command then
+    elseif not patrol_command then
       insert(unit_data.command_queue, command)
-      if unit_data.idle and unit then
+      if is_unit and unit_data.idle then
         process_command_queue(unit_data)
       end
     end
     add_unit_indicators(unit_data)
-
-    if current_column == (max_on_row - 1) then
-      current_row = current_row + 1
-      current_column = 0
-    else
-      current_column = current_column + 1
-    end
   end
 end
 
