@@ -334,12 +334,6 @@ local clear_indicators = function(unit_data)
   unit_data.indicators = nil
 end
 
-local is_idle = function(unit_number)
-  local unit_data = script_data.units[unit_number]
-  if not unit_data then return true end
-  if unit_data.idle and not unit_data.player then return true end
-end
-
 local deselect_units = function(unit_data)
   --if not unit_data then return end
   remove_target_indicator(unit_data)
@@ -507,14 +501,14 @@ local stop = {type = defines.command.stop}
 local idle_command = {type = defines.command.stop, radius = 1}
 local hold_position_command = {type = defines.command.stop, speed = 0}
 
-set_unit_idle = function(unit_data, send_event)
+set_unit_idle = function(unit_data)
   unit_data.idle = true
   unit_data.command_queue = {}
   unit_data.destination = nil
   unit_data.target = nil
   local unit = unit_data.entity
   if unit.type == "unit" then
-    unit.ai_settings.do_separation = false
+    unit.ai_settings.do_separation = true
     set_command(unit_data, idle_command)
   end
   return add_unit_indicators(unit_data)
@@ -974,48 +968,26 @@ local get_min_speed = function(entities)
   end
   return speed
 end
---1-6 = 1
---7-15 = 2
---16-28 = 3
-local make_move_positions = function(group)
-  --so, a rectangle, 6 times longer than wide...
-  local size = table_size(group)
-  local number_of_rows = math.floor((size ^ 0.5) / 1.5)
-  local max_on_row = math.ceil(size / number_of_rows)
-  local positions = {}
-  local row_number = 0
-  local remaining = size
-  while remaining > 0 do
-    local number_on_row = math.min(remaining, max_on_row)
-    for k = 0, number_on_row - 1 do
-      local something
-      if k % 2 == 0 then
-        something = k / 2
-      else
-        something = (- 1 - k) / 2
-      end
-      if number_on_row % 2 == 0 then
-        something = something + 0.5
-      end
-      local position = {x = something, y = row_number}
-      table.insert(positions, position)
-      remaining = remaining - 1
-    end
-    row_number = row_number + 1
+
+local positions = {}
+local get_move_offset = function(n)
+  local position = positions[n]
+  if position then
+    return position
   end
-  return positions
+  position = {}
+  positions[n] = position
+  position.x = math.sin(n*10)* (n ^ 0.5)
+  position.y = math.cos(n*10) * (n ^ 0.5)
+  return position
 end
 
-local center_of_mass = function(group)
-  local x, y, k = 0, 0, 0
-  for unit_number, unit in pairs (group) do
-    local p = unit.position
-    x = x + p.x
-    y = y + p.y
-    k = k + 1
-  end
-  return {x / k, y / k}
-end
+local path_flags =
+{
+  allow_destroy_friendly_entities = false,
+  cache = false,
+  no_break = true
+}
 
 local make_move_command = function(param)
   local origin = param.position
@@ -1027,80 +999,34 @@ local make_move_command = function(param)
   local append = param.append
   local type = defines.command.go_to_location
   local find = surface.find_non_colliding_position
-  local index
-  local offset, radius, speed = get_offset(group)
-  --local positions = make_move_positions(group)
+  local units = script_data.units
+  local i = 1
 
-  local size = table_size(group)
-  local number_of_rows = math.floor((size ^ 0.5) / 1.5)
-  local max_on_row = math.ceil(size / number_of_rows)
-  local angle = util.angle(origin, center_of_mass(group)) - (0.25 * 2 * math.pi)
-  cos = math.cos(angle)
-  sin = math.sin(angle)
-
-  local rotate = function(position)
-   local x = (position.x * cos) - (position.y * sin)
-   local y = (position.x * sin) + (position.y * cos)
-   return {x = x, y = y}
-  end
-
-  local should_ajar = {}
-  local remaining = size
-  for k = 0, number_of_rows - 1 do
-    if remaining < (max_on_row) then
-      should_ajar[k] = remaining % 2 == 0
-    else
-      should_ajar[k] = max_on_row % 2 == 0
-    end
-    remaining = remaining - (max_on_row)
-  end
-
-  local y_adjust = 0.5 + (-0.5 * size) / max_on_row
-
-  local insert = table.insert
-  local current_row = 0
-  local current_column = 0
   for unit_number, entity in pairs (group) do
-    local position = {}
-    position.y = current_row + y_adjust
-    local something
-    if current_column % 2 == 0 then
-      something = current_column / 2
-    else
-      something = (- 1 - current_column) / 2
-    end
-    if should_ajar[current_row] then
-      something = something + 0.5
-    end
-    position.x = something
-    position.x = position.x * offset
-    position.y = position.y * offset
-    position = rotate(position)
-    local destination = {origin.x + position.x, origin.y + position.y}
+    local offset = get_move_offset(i)
+    i = i + 1
+    local destination = {origin.x + offset.x, origin.y + offset.y}
     --log(entity.unit_number.." = "..serpent.line(destination))
-    local unit = (entity.type == "unit")
+    local is_unit = (entity.type == "unit")
     local destination = find(entity.name, destination, 0, 0.5)
-    local command = {
+    local command =
+    {
       command_type = next_command_type.move,
       type = type, distraction = distraction,
       radius = 0.5,
-      destination = destination,
       speed = speed,
-      pathfind_flags =
-      {
-        allow_destroy_friendly_entities = false,
-        cache = false
-      }
+      pathfind_flags = path_flags,
+      destination = destination,
+      do_separation = false
     }
-    local unit_data = script_data.units[entity.unit_number]
+    local unit_data = units[unit_number]
     if append then
-      if unit_data.idle and unit then
+      if is_unit and unit_data.idle then
         set_command(unit_data, command)
       end
       insert(unit_data.command_queue, command)
     else
-      unit_data.command_queue = {command}
-      if unit then
+      if is_unit then
         set_command(unit_data, command)
         unit_data.command_queue = {}
       else
@@ -1108,13 +1034,6 @@ local make_move_command = function(param)
       end
     end
     set_unit_not_idle(unit_data)
-
-    if current_column == (max_on_row - 1) then
-      current_row = current_row + 1
-      current_column = 0
-    else
-      current_column = current_column + 1
-    end
   end
 end
 
@@ -1908,7 +1827,7 @@ local set_map_settings = function()
   settings.path_finder.use_path_cache = false
   --settings.path_finder.short_cache_size = 0
   --settings.path_finder.long_cache_size = 0
-  settings.steering.moving.force_unit_fuzzy_goto_behavior = false
+  settings.steering.moving.force_unit_fuzzy_goto_behavior = true
   settings.steering.default.force_unit_fuzzy_goto_behavior = false
   --settings.steering.moving.radius = 0
   --settings.steering.moving.default = 0
@@ -1938,21 +1857,20 @@ local on_entity_spawned = function(event)
     idle = false
   }
   script_data.units[unit.unit_number] = unit_data
-  local random = math.random
-  local r = source.get_radius() + unit.get_radius()
-  local offset = function()
-    return (random() * r * 2) - r
-  end
+
+  local i = math.random(50)
+  local offset = get_move_offset(math.random(50))
   for k, command in pairs (unit_data.command_queue) do
     if command.command_type == next_command_type.move then
-      command.destination = {x = command.destination.x + offset(), y = command.destination.y + offset()}
+      command.destination = {x = command.destination.x + offset.x, y = command.destination.y + offset.y}
     end
     if command.command_type == next_command_type.patrol then
       for k, destination in pairs (command.destinations) do
-        destination = {x = destination.x + offset(), y = destination.y + offset()}
+        destination = {x = destination.x + offset.y, y = destination.y + offset.x}
       end
     end
   end
+
   unit.release_from_spawner()
   return process_command_queue(unit_data)
 end
@@ -1995,9 +1913,6 @@ remote.add_interface("unit_control", {
   end,
   set_map_settings = function()
     set_map_settings()
-  end,
-  is_unit_idle = function(unit_number)
-    return is_idle(unit_number)
   end
 })
 
