@@ -916,16 +916,6 @@ local unit_selection = function(event)
   local entities = event.entities
   if not entities then return end
 
-  local first_index, first = next(entities)
-  if not first then
-    local this_area = event.area
-    local radius = util.radius(this_area)
-    if radius < 0.25 then
-      --Probably map dragging.
-      return
-    end
-  end
-
   local append = (event.name == defines.events.on_player_alt_selected_area)
   local player = game.players[event.player_index]
   if not (player and player.valid) then return end
@@ -2019,6 +2009,9 @@ local allow_selection =
 local left_click = function(event)
 
   local player = game.get_player(event.player_index)
+  if player.render_mode ~= defines.render_mode.game then
+    return
+  end
   local stack = player.cursor_stack
   if not stack then return end
   if stack.valid_for_read then return end
