@@ -928,6 +928,7 @@ local unit_selection = function(event)
     clear_selected_units(player)
   end
 
+  local first_index, first = next(entities)
   if first and is_double_click(event) then
     entities = select_similar_nearby(first)
   end
