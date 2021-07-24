@@ -31,9 +31,7 @@ local next_command_type =
 
 local script_events =
 {
-  on_unit_idle = script.generate_event_name(),
-  on_unit_selected = script.generate_event_name(),
-  on_unit_not_idle = script.generate_event_name()
+  on_unit_spawned = script.generate_event_name()
 }
 
 local print = function(string)
@@ -518,16 +516,12 @@ set_unit_idle = function(unit_data, send_event)
   if unit.type == "unit" then
     unit.ai_settings.do_separation = false
     set_command(unit_data, idle_command)
-    if send_event then
-      script.raise_event(script_events.on_unit_idle, {entity = unit})
-    end
   end
   return add_unit_indicators(unit_data)
 end
 
 local set_unit_not_idle = function(unit_data)
   unit_data.idle = false
-  script.raise_event(script_events.on_unit_not_idle, {entity = unit_data.entity})
   return add_unit_indicators(unit_data)
 end
 
@@ -2101,6 +2095,7 @@ unit_control.events =
   [defines.events.on_surface_deleted] = validate_some_stuff,
   [defines.events.on_surface_cleared] = validate_some_stuff,
   [defines.events.on_entity_spawned] = on_entity_spawned,
+  [script_events.on_unit_spawned] = on_entity_spawned,
 
   ["left-click"] = left_click,
   ["shift-left-click"] = shift_left_click,
