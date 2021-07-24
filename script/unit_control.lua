@@ -915,6 +915,17 @@ end
 local unit_selection = function(event)
   local entities = event.entities
   if not entities then return end
+
+  local first_index, first = next(entities)
+  if not first then
+    local this_area = event.area
+    local radius = util.radius(this_area)
+    if radius < 0.25 then
+      --Probably map dragging.
+      return
+    end
+  end
+
   local append = (event.name == defines.events.on_player_alt_selected_area)
   local player = game.players[event.player_index]
   if not (player and player.valid) then return end
@@ -927,8 +938,7 @@ local unit_selection = function(event)
     clear_selected_units(player)
   end
 
-  local first_index, first = next(entities)
-  if is_double_click(event) and first then
+  if first and is_double_click(event) then
     entities = select_similar_nearby(first)
   end
 
