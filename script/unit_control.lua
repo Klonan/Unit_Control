@@ -337,6 +337,34 @@ local get_collision_box_draw_points = function(entity)
   return box
 end
 
+local draw_temp_attack_indicator = function(entity, player)
+  if not player then return end
+  local box_points = get_collision_box_draw_points(entity)
+
+  local draw_line = rendering.draw_line
+  local color = {1, 0, 0}
+  local width = 2
+  local players = {player}
+  local surface = entity.surface
+  local params =
+  {
+    color = color,
+    width = width,
+    from = entity,
+    to = entity,
+    surface = surface,
+    players = players,
+    draw_on_ground = false,
+    time_to_live = 30
+  }
+
+  for k, points in pairs (box_points) do
+    params.to_offset = points[1]
+    params.from_offset = points[2]
+    draw_line(params)
+  end
+end
+
 local clear_selection_indicator = function(unit_data)
 
   if unit_data.selection_indicator then
@@ -381,13 +409,13 @@ local update_selection_indicators = function(unit_data)
 
   local draw_line = rendering.draw_line
   local color = {0, 1, 0}
-  local width = 3
+  local width = 2
   local players = {player}
   local surface = unit.surface
   local params =
   {
     color = color,
-    width = 1,
+    width = width,
     from = unit,
     to = unit,
     surface = surface,
@@ -1375,7 +1403,6 @@ end
 
 
 local make_attack_command = function(group, entities, append)
-  local entities = entities
   if #entities == 0 then return end
   local script_data = script_data.units
   local next_command =
@@ -1610,6 +1637,7 @@ end
 
 local on_ai_command_completed = function(event)
   --print("Ai command complete "..event.unit_number)
+  if event.was_distracted then return end
   local unit_data = script_data.units[event.unit_number]
   if unit_data then
     return process_command_queue(unit_data, event)
@@ -1664,6 +1692,7 @@ local bulk_attack_closest = function(entities, group)
     local unit = unit_data.entity
     if unit.valid then
       command.target = get_closest(unit.position, entities)
+      draw_temp_attack_indicator(command.target, unit_data.player)
       set_command(unit_data, command)
     end
   end
@@ -1949,13 +1978,28 @@ local shift_left_click = function(event)
 end
 
 local right_click = function(event)
-  if not get_selected_units(event.player_index) then return end
+  local group = get_selected_units(event.player_index)
+  if not group then return end
   local player = game.get_player(event.player_index)
   if player.selected and not allow_selection[player.selected.type] then return end
   if player.opened ~= get_frame(event.player_index) then return end
   local stack = player.cursor_stack
   if not stack then return end
   if stack.valid_for_read then return end
+
+  local entities = player.surface.find_entities_filtered{position = event.cursor_position}
+  local player_force = player.force
+  local attack_entities = {}
+  for k, entity in pairs(entities) do
+    if not player_force.get_cease_fire(entity.force) then
+      attack_entities[k] = entity
+    end
+  end
+  if next(attack_entities) then
+    make_attack_command(group, attack_entities, false)
+    player.play_sound({path = tool_names.unit_move_sound})
+    return
+  end
 
   attack_move_units_to_position(player, event.cursor_position)
 
@@ -1969,6 +2013,20 @@ local shift_right_click = function(event)
   local stack = player.cursor_stack
   if not stack then return end
   if stack.valid_for_read then return end
+
+  local entities = player.surface.find_entities_filtered{position = event.cursor_position}
+  local player_force = player.force
+  local attack_entities = {}
+  for k, entity in pairs(entities) do
+    if not player_force.get_cease_fire(entity.force) then
+      attack_entities[k] = entity
+    end
+  end
+  if next(attack_entities) then
+    make_attack_command(group, attack_entities, false)
+    player.play_sound({path = tool_names.unit_move_sound})
+    return
+  end
 
   attack_move_units_to_position(player, event.cursor_position, true)
 
