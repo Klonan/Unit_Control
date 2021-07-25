@@ -934,10 +934,32 @@ local is_double_click = function(event)
   local this_area = event.area
   local radius = util.radius(this_area)
   if radius > 1 then return end
+
   local last_selection_tick = script_data.last_selection_tick[event.player_index]
-  if not last_selection_tick then return end
-  if (last_selection_tick + double_click_delay) < event.tick then return end
-  return true
+
+  if not last_selection_tick then
+    script_data.last_selection_tick[event.player_index] = event.tick
+    return
+  end
+
+  local duration = event.tick - last_selection_tick
+  script_data.last_selection_tick[event.player_index] = event.tick
+
+  return duration <= double_click_delay
+end
+
+local is_double_right_click = function(event)
+  local last_selection_tick = script_data.last_selection_tick[event.player_index]
+
+  if not last_selection_tick then
+    script_data.last_selection_tick[event.player_index] = event.tick
+    return
+  end
+
+  local duration = event.tick - last_selection_tick
+  script_data.last_selection_tick[event.player_index] = event.tick
+
+  return duration <= double_click_delay
 end
 
 local select_similar_nearby = function(entity)
@@ -994,7 +1016,6 @@ local process_unit_selection = function(entities, player)
     script_data.open_frames[player_index] = frame
     player.opened = frame
   end
-  script_data.last_selection_tick[player_index] = game.tick
   script_data.marked_for_refresh[player_index] = true
 end
 
@@ -1184,6 +1205,23 @@ local move_units = function(event)
     distraction = defines.distraction.none,
     group = group,
     append = event.name == defines.events.on_player_alt_selected_area,
+    player = player
+  }
+  player.play_sound({path = tool_names.unit_move_sound})
+end
+
+local move_units_to_position = function(player, position, append)
+  local group = get_selected_units(player.index)
+  if not group then
+    script_data.selected_units[player.index] = nil
+    return
+  end
+  make_move_command
+  {
+    position = position,
+    distraction = defines.distraction.none,
+    group = group,
+    append = append,
     player = player
   }
   player.play_sound({path = tool_names.unit_move_sound})
@@ -1970,7 +2008,11 @@ local right_click = function(event)
     return
   end
 
-  attack_move_units_to_position(player, event.cursor_position)
+  if is_double_right_click(event) then
+    move_units_to_position(player, event.cursor_position)
+  else
+    attack_move_units_to_position(player, event.cursor_position)
+  end
 
 end
 
@@ -2008,7 +2050,11 @@ local shift_right_click = function(event)
     return
   end
 
-  attack_move_units_to_position(player, event.cursor_position, true)
+  if is_double_right_click(event) then
+    move_units_to_position(player, event.cursor_position, true)
+  else
+    attack_move_units_to_position(player, event.cursor_position, true)
+  end
 
 end
 
