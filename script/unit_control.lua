@@ -355,7 +355,7 @@ local draw_temp_attack_indicator = function(entity, player)
     surface = surface,
     players = players,
     draw_on_ground = false,
-    time_to_live = 30
+    time_to_live = 100
   }
 
   for k, points in pairs (box_points) do
