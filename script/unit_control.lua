@@ -1409,7 +1409,7 @@ local unit_follow = function(unit_data)
     type = defines.command.go_to_location,
     destination = {target.position.x + offset.x, target.position.y + offset.y},
     radius = 1,
-    speed = math.min(unit.prototype.speed, target.speed * 1.05)
+    speed = math.min(unit.prototype.speed, (target.speed or 999) * 1.05)
   })
 
 end
