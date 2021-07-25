@@ -1159,6 +1159,7 @@ local get_group_size_and_speed = function(group)
       end
     end
   end
+  if speed == math.huge then speed = nil end
   return size, speed
 end
 
@@ -1902,6 +1903,7 @@ local on_entity_spawned = function(event)
   local i = math.random(50)
   local offset = get_move_offset(math.random(50))
   for k, command in pairs (unit_data.command_queue) do
+    command.speed = nil
     if command.command_type == next_command_type.move then
       command.destination = {x = command.destination.x + offset.x, y = command.destination.y + offset.y}
     end
