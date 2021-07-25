@@ -337,8 +337,7 @@ local get_collision_box_draw_points = function(entity)
   return box
 end
 
-local update_selection_indicators = function(unit_data)
-  --game.print("Updating selection indicators")
+local clear_selection_indicator = function(unit_data)
 
   if unit_data.selection_indicator then
     if unit_data.selection_indicator.valid then
@@ -347,15 +346,22 @@ local update_selection_indicators = function(unit_data)
     unit_data.selection_indicator = nil
   end
 
+  if unit_data.rendered_selection_box then
+    local destroy = rendering.destroy
+    for k, render_id in pairs (unit_data.rendered_selection_box) do
+      destroy(render_id)
+    end
+    unit_data.rendered_selection_box = nil
+  end
+
+end
+
+local update_selection_indicators = function(unit_data)
+  --game.print("Updating selection indicators")
+
   local player = unit_data.player
   if not player then
-    if unit_data.rendered_selection_box then
-      local destroy = rendering.destroy
-      for k, render_id in pairs (unit_data.rendered_selection_box) do
-        destroy(render_id)
-      end
-      unit_data.rendered_selection_box = nil
-    end
+    clear_selection_indicator(unit_data)
     return
   end
 
@@ -407,18 +413,12 @@ local clear_indicators = function(unit_data)
 end
 
 local deselect_units = function(unit_data)
-  --if not unit_data then return end
-  remove_target_indicator(unit_data)
   if unit_data.player then
     script_data.marked_for_refresh[unit_data.player] = true
     unit_data.player = nil
   end
-  update_selection_indicators(unit_data)
+  clear_selection_indicator(unit_data)
   clear_indicators(unit_data)
-
-  --local entity = unit_data.entity
-  --local unit_number = entity.unit_number
-  --data.groups[unit_number] = nil
 end
 
 local shift_box = function(box, shift)
@@ -446,7 +446,6 @@ add_unit_indicators = function(unit_data)
 
   update_selection_indicators(unit_data)
   clear_indicators(unit_data)
-  add_target_indicator(unit_data)
 
   --if true then return end
 
@@ -561,8 +560,11 @@ local reset_rendering = function()
   for k, unit_data in pairs (script_data.units) do
     local unit = unit_data.entity
     if unit and unit.valid then
-      add_unit_indicators(unit_data)
+      clear_indicators(unit_data)
+      clear_selection_indicator(unit_data)
+      remove_target_indicator(unit_data)
       unit_data.selection_indicators = nil
+      add_unit_indicators(unit_data)
     else
       script_data.units[k] = nil
     end
