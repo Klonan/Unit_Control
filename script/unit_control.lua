@@ -970,6 +970,7 @@ local get_min_speed = function(entities)
 end
 
 local positions = {}
+local turn_rate = (math.pi * 2) / 1.618
 local get_move_offset = function(n)
   local position = positions[n]
   if position then
@@ -977,8 +978,8 @@ local get_move_offset = function(n)
   end
   position = {}
   positions[n] = position
-  position.x = math.sin(n*10)* (n ^ 0.5)
-  position.y = math.cos(n*10) * (n ^ 0.5)
+  position.x = math.sin(n * turn_rate)* (n ^ 0.5)
+  position.y = math.cos(n * turn_rate) * (n ^ 0.5)
   return position
 end
 
@@ -1000,7 +1001,7 @@ local make_move_command = function(param)
   local type = defines.command.go_to_location
   local find = surface.find_non_colliding_position
   local units = script_data.units
-  local i = 1
+  local i = 0
 
   for unit_number, entity in pairs (group) do
     local offset = get_move_offset(i)
@@ -1112,7 +1113,7 @@ local make_patrol_command = function(param)
   local insert = table.insert
   local units = script_data.units
 
-  local i = 1
+  local i = 0
   for unit_number, entity in pairs (group) do
     local offset = get_move_offset(i)
     i = i + 1
@@ -1948,12 +1949,9 @@ unit_control.on_init = function()
 end
 
 unit_control.on_configuration_changed = function(configuration_changed_data)
-
   set_map_settings()
   reset_rendering()
 end
-
-unit_control.get_events = function() return events end
 
 unit_control.on_load = function()
   script_data = global.unit_control or script_data
