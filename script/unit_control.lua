@@ -70,6 +70,7 @@ local set_command = function(unit_data, command)
   if not unit.valid then return end
   unit_data.command = command
   unit_data.destination = command.destination
+  unit_data.distraction = command.distraction
   unit_data.destination_entity = command.destination_entity
   unit_data.target = command.target
   unit_data.in_group = nil
@@ -470,6 +471,17 @@ local get_attack_range = function(prototype)
   return attack_parameters.range
 end
 
+local move_color =
+{
+  [defines.distraction.none] = {r = 0, b = 0, g = 1, a = 1},
+  [defines.distraction.by_anything] = {r = 1, b = 0, g = 0.5, a = 1},
+  [defines.distraction.by_enemy] = {r = 1, b = 0, g = 0.5, a = 1}
+}
+
+local get_color = function(distraction)
+  return move_color[distraction] or {r = 1, b = 1, g = 1, a = 1}
+end
+
 add_unit_indicators = function(unit_data)
 
   update_selection_indicators(unit_data)
@@ -514,7 +526,7 @@ add_unit_indicators = function(unit_data)
   if unit_data.destination then
     indicators[draw_line
     {
-      color = {b = 0.1, g = 0.5, a = 0.02},
+      color = get_color(unit_data.distraction),
       width = 1,
       to = unit,
       from = unit_data.destination,
@@ -529,7 +541,7 @@ add_unit_indicators = function(unit_data)
   if unit_data.destination_entity and unit_data.destination_entity.valid then
     indicators[draw_line
     {
-      color = {b = 0.1, g = 0.5, a = 0.02},
+      color = get_color(unit_data.distraction),
       width = 1,
       to = unit,
       from = unit_data.destination_entity,
@@ -543,11 +555,10 @@ add_unit_indicators = function(unit_data)
 
   local position = unit_data.destination or unit.position
   for k, command in pairs (unit_data.command_queue) do
-
     if command.command_type == next_command_type.move then
       indicators[draw_line
       {
-        color = {b = 0.1, g = 0.5, a = 0.02},
+        color = get_color(command.distraction),
         width = 1,
         to = position,
         from = command.destination,
@@ -607,6 +618,7 @@ set_unit_idle = function(unit_data)
   unit_data.idle = true
   unit_data.command_queue = {}
   unit_data.destination = nil
+  unit_data.distraction = nil
   unit_data.target = nil
   local unit = unit_data.entity
   if unit.type == "unit" then
@@ -1168,7 +1180,8 @@ local make_move_command = function(param)
     local command =
     {
       command_type = next_command_type.move,
-      type = type, distraction = distraction,
+      type = type,
+      distraction = distraction,
       radius = 0.5,
       speed = speed,
       pathfind_flags = path_flags,
@@ -1578,6 +1591,7 @@ process_command_queue = function(unit_data, event)
     --print("Move")
     set_command(unit_data, next_command)
     unit_data.destination = next_command.destination
+    unit_data.distraction = next_command.distraction
     table.remove(command_queue, 1)
     return
   end
