@@ -120,8 +120,9 @@ local reinit_all_deployers = function()
   script_data.machines = machines
 
   local deployers = get_deployer_map()
-  local array = {}
+  if not next(deployers) then return end
 
+  local array = {}
   for name, bool in pairs (deployers) do
     table.insert(array, name)
   end
