@@ -847,18 +847,18 @@ local make_unit_gui = function(player)
   local group = get_selected_units(index)
 
   if not group then
-    player.game_view_settings.update_entity_selection = true
+    --player.game_view_settings.update_entity_selection = true
     frame.destroy()
     return
   end
 
-  player.game_view_settings.update_entity_selection = true
-  player.update_selected_entity({2000000, 2000000})
-  player.clear_selected_entity()
-  player.selected = nil
-  player.game_view_settings.update_entity_selection = false
-  player.clear_selected_entity()
-  player.selected = nil
+  --player.game_view_settings.update_entity_selection = true
+  --player.update_selected_entity({2000000, 2000000})
+  --player.clear_selected_entity()
+  --player.selected = nil
+  --player.game_view_settings.update_entity_selection = false
+  --player.clear_selected_entity()
+  --player.selected = nil
 
   frame.clear()
   local header_flow = frame.add{type = "flow", direction = "horizontal"}
