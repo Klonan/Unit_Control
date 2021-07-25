@@ -1531,13 +1531,25 @@ local alt_selected_area_actions =
   --[tool_names.unit_follow_tool] = follow_unit,
 }
 
+local clear_poop = function(player_index)
+  local player = game.get_player(player_index)
+  if not player then return end
+  local cursor = player.cursor_stack
+  if not (cursor and cursor.valid and cursor.valid_for_read) then return end
+  if cursor.name == "select-units" then
+    cursor.clear()
+  end
+end
+
 local on_player_selected_area = function(event)
+  clear_poop(event.player_index)
   local action = selected_area_actions[event.item]
   if not action then return end
   return action(event)
 end
 
 local on_player_alt_selected_area = function(event)
+  clear_poop(event.player_index)
   local action = alt_selected_area_actions[event.item]
   if not action then return end
   return action(event)
@@ -1975,6 +1987,8 @@ local left_click = function(event)
   if not stack then return end
   if stack.valid_for_read then return end
 
+  if player.cursor_ghost then return end
+
   if player.selected and not allow_selection[player.selected.type] then return end
 
   if player.opened ~= get_frame(event.player_index) then return end
@@ -1991,6 +2005,7 @@ local shift_left_click = function(event)
   local stack = player.cursor_stack
   if not stack then return end
   if stack.valid_for_read then return end
+  if player.cursor_ghost then return end
 
   stack.set_stack({name = "select-units"})
   player.start_selection(event.cursor_position, "alternative-select")
