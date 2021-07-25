@@ -13,7 +13,8 @@ local script_data =
   marked_for_refresh = {},
   last_selection_tick = {},
   target_indicators = {},
-  attack_register = {}
+  attack_register = {},
+  last_location = {}
 }
 
 local empty_position = {0,0}
@@ -860,6 +861,7 @@ local make_unit_gui = function(player)
 
   if not group then
     --player.game_view_settings.update_entity_selection = true
+    script_data.last_location[index] = frame.location
     frame.destroy()
     return
   end
@@ -1024,7 +1026,12 @@ local process_unit_selection = function(entities, player)
     local size = player.display_resolution
     local x_position = (size.width / 2) -  (width / 2)
     local y_position = size.height  - ((200 + (math.ceil(table_size(types) / 10) * 40)) * player.display_scale)
-    frame.location = {x_position, y_position}
+    if script_data.last_location[player_index] then
+      frame.location = script_data.last_location[player_index]
+    else
+      frame.location = {x_position, y_position}
+      script_data.last_location[player_index] = {x_position, y_position}
+    end
     script_data.open_frames[player_index] = frame
     player.opened = frame
   end
@@ -2123,6 +2130,7 @@ end
 unit_control.on_configuration_changed = function(configuration_changed_data)
   set_map_settings()
   reset_rendering()
+  script_data.last_location = script_data.last_location or {}
 end
 
 unit_control.on_load = function()
