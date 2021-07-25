@@ -1,7 +1,14 @@
 ---------------------------------------------------------------------------------------------------
-Version: 0.2.5
-Date: 2021-07-24
+Version: 0.3.2
+Date: 2021-07-25
   Changes:
+    - Left click and drag to select without any tool needed
+    - Right click to command without any tool needed
+    - Removed the specific selection tools
+    - Fixed deployers not being issues commands
+    - New indicator look
+    - New group move positioning
+    - etc.
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.4
 Date: 2020-12-28
