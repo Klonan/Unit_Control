@@ -1073,16 +1073,26 @@ end
 
 local positions = {}
 local turn_rate = (math.pi * 2) / 1.618
-local get_move_offset = function(n)
+local size_scale = 1.4
+local get_move_offset = function(n, size)
+  local size = (size or 1) * size_scale
   local position = positions[n]
   if position then
-    return position
+    return
+    {
+      x = position.x * size,
+      y = position.y * size
+    }
   end
   position = {}
   positions[n] = position
   position.x = math.sin(n * turn_rate)* (n ^ 0.5)
   position.y = math.cos(n * turn_rate) * (n ^ 0.5)
-  return position
+  return
+  {
+    x = position.x * size,
+    y = position.y * size
+  }
 end
 
 local path_flags =
@@ -1091,6 +1101,26 @@ local path_flags =
   cache = false,
   no_break = true
 }
+
+local get_group_size_and_speed = function(group)
+  local speed = math.huge
+  local size = 0.5
+  local checked = {}
+  for k, entity in pairs (group) do
+    if not checked[entity.name] then
+      checked[entity.name] = true
+      if entity.type == "unit" then
+        if entity.prototype.speed < speed then
+          speed = entity.prototype.speed
+        end
+        if entity.get_radius() > size then
+          size = entity.get_radius()
+        end
+      end
+    end
+  end
+  return size, speed
+end
 
 local make_move_command = function(param)
   local origin = param.position
@@ -1105,8 +1135,10 @@ local make_move_command = function(param)
   local units = script_data.units
   local i = 0
 
+  local size, speed = get_group_size_and_speed(group)
+
   for unit_number, entity in pairs (group) do
-    local offset = get_move_offset(i)
+    local offset = get_move_offset(i, size)
     i = i + 1
     local destination = {origin.x + offset.x, origin.y + offset.y}
     --log(entity.unit_number.." = "..serpent.line(destination))
@@ -1215,9 +1247,11 @@ local make_patrol_command = function(param)
   local insert = table.insert
   local units = script_data.units
 
+
+  local size, speed = get_group_size_and_speed(group)
   local i = 0
   for unit_number, entity in pairs (group) do
-    local offset = get_move_offset(i)
+    local offset = get_move_offset(i, size)
     i = i + 1
     local destination = {origin.x + offset.x, origin.y + offset.y}
     local unit_data = units[unit_number]
@@ -1990,13 +2024,24 @@ local right_click = function(event)
   local entities = player.surface.find_entities_filtered{position = event.cursor_position}
   local player_force = player.force
   local attack_entities = {}
+  local follow_entity
   for k, entity in pairs(entities) do
-    if not player_force.get_cease_fire(entity.force) then
+    local force = entity.force
+    if force == player_force then
+      follow_entity = entity
+    elseif not player_force.get_cease_fire(entity.force) then
       attack_entities[k] = entity
     end
   end
+
   if next(attack_entities) then
     make_attack_command(group, attack_entities, false)
+    player.play_sound({path = tool_names.unit_move_sound})
+    return
+  end
+
+  if follow_entity then
+    make_follow_command(group, follow_entity, false)
     player.play_sound({path = tool_names.unit_move_sound})
     return
   end
@@ -2017,13 +2062,24 @@ local shift_right_click = function(event)
   local entities = player.surface.find_entities_filtered{position = event.cursor_position}
   local player_force = player.force
   local attack_entities = {}
+  local follow_entity
   for k, entity in pairs(entities) do
-    if not player_force.get_cease_fire(entity.force) then
+    local force = entity.force
+    if force == player_force then
+      follow_entity = entity
+    elseif not player_force.get_cease_fire(entity.force) then
       attack_entities[k] = entity
     end
   end
+
   if next(attack_entities) then
-    make_attack_command(group, attack_entities, false)
+    make_attack_command(group, attack_entities, true)
+    player.play_sound({path = tool_names.unit_move_sound})
+    return
+  end
+
+  if follow_entity then
+    make_follow_command(group, follow_entity, true)
     player.play_sound({path = tool_names.unit_move_sound})
     return
   end
