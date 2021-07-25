@@ -1317,9 +1317,8 @@ local directions =
 }
 
 local random = math.random
-local follow_range = 16
+local follow_range = 32
 local unit_follow = function(unit_data)
-  --copy pasta from construction drone
 
   local command = unit_data.command_queue[1]
   if not command then return end
@@ -1340,95 +1339,20 @@ local unit_follow = function(unit_data)
     {
       type = defines.command.go_to_location,
       destination_entity = target,
-      radius = follow_range
+      radius = follow_range - 5
     })
     return
   end
 
-  local check_time = random(20, 40)
-
-  local target_type = target.type
-
-  local generic_vehicle_types =
+  local offset = get_move_offset(10 + unit.unit_number % 100, unit.get_radius())
+  set_command(unit_data,
   {
-    car = true,
-    tank = true,
-    locomotive = true,
-    ["cargo-wagon"] = true,
-    ["fluid-wagon"] = true,
-    ["artillery-wagon"] = true
-  }
-
-  if target_type == "character" then
-    if target.vehicle then
-      target = target.vehicle
-      target_type = target.type
-    end
-  end
-
-  if generic_vehicle_types[target_type] then
-    local speed = target.speed
-    if speed ~= 0 then
-      --In factorio, north is 0 rad... so rotate back to east being 0 rad like math do
-      local initial = target.orientation
-      if speed < 0 then initial = initial + 0.5 end
-      local orientation = (initial - 0.25) * 2 * math.pi
-      local offset = {math.cos(orientation), math.sin(orientation)}
-      local target_speed = math.abs(speed)
-      local new_position = {unit.position.x + (offset[1] * check_time * target_speed), unit.position.y + (offset[2] * check_time * target_speed)}
-      return set_command(unit_data,
-      {
-        type = defines.command.go_to_location,
-        radius = 1,
-        distraction = defines.distraction.by_enemy,
-        destination = unit.surface.find_non_colliding_position(unit.name, new_position, 0, 1),
-        speed = math.min(unit.prototype.speed, target_speed * (check_time / (check_time - 1)))
-      })
-    end
-  elseif target_type == "character" then
-    local state = target.walking_state
-    if state.walking then
-      local offset = directions[state.direction]
-      local target_speed = target.character_running_speed
-      local new_position = {unit.position.x + (offset[1] * check_time * target_speed), unit.position.y + (offset[2] * check_time * target_speed)}
-      return set_command(unit_data,
-      {
-        type = defines.command.go_to_location,
-        radius = 1,
-        distraction = defines.distraction.by_enemy,
-        destination = unit.surface.find_non_colliding_position(unit.name, new_position, 0, 1),
-        speed = math.min(unit.prototype.speed, target_speed * (check_time / (check_time - 1)))
-      })
-    end
-  elseif target_type == "unit" then
-    if target.moving then
-      --In factorio, north is 0 rad... so rotate back to east being 0 rad like math do
-      local orientation = (target.orientation - 0.25) * 2 * math.pi
-      local offset = {math.cos(orientation), math.sin(orientation)}
-      local target_speed = target.speed
-      local new_position = {unit.position.x + (offset[1] * check_time * target_speed), unit.position.y + (offset[2] * check_time * target_speed)}
-      return set_command(unit_data,
-      {
-        type = defines.command.go_to_location,
-        radius = 1,
-        distraction = defines.distraction.by_enemy,
-        destination = unit.surface.find_non_colliding_position(unit.name, new_position, 0, 1),
-        speed = math.min(unit.prototype.speed, target_speed * (check_time / (check_time - 1)))
-      })
-    end
-  else
-    --They aren't a 'moving' type, so consider this command DONE.
-    table.remove(unit_data.command_queue, 1)
-    return process_command_queue(unit_data)
-  end
-
-  return set_command(unit_data,
-  {
-    type = defines.command.wander,
-    distraction = defines.distraction.none,
-    ticks_to_wait = check_time,
-    speed = unit.prototype.speed * ((random() * 0.5) + 0.5)
+    type = defines.command.go_to_location,
+    destination = {target.position.x + offset.x, target.position.y + offset.y},
+    radius = 1,
+    speed = math.min(unit.prototype.speed, target.speed * 1.05)
   })
+
 end
 
 local register_to_attack = function(unit_data)
