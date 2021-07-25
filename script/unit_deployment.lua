@@ -139,6 +139,11 @@ local reinit_all_deployers = function()
   game.print({"", "Unit control - Reinitialised all deployers. ", profiler})
 end
 
+local setup_spawn_event = function()
+  local control_events = remote.call("unit_control", "get_events")
+  unit_spawned_event = control_events.on_unit_spawned
+end
+
 local unit_deployment = {}
 
 unit_deployment.events =
@@ -154,12 +159,12 @@ unit_deployment.events =
 unit_deployment.on_init = function()
   global.unit_deployment = global.unit_deployment or script_data
   reinit_all_deployers()
+  setup_spawn_event()
 end
 
 unit_deployment.on_load = function()
   script_data = global.unit_deployment or script_data
-  local control_events = remote.call("unit_control", "get_events")
-  unit_spawned_event = control_events.on_unit_spawned
+  setup_spawn_event()
 end
 
 unit_deployment.on_configuration_changed = function()
