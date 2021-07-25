@@ -297,7 +297,7 @@ local width = 0.2
 local get_collision_box_draw_points = function(entity)
   local box = box_point_cache[entity.name]
   if box then return box end
-  local collision_box = entity.prototype.collision_box
+  local collision_box = entity.prototype.selection_box
   local box =
   {
     {
@@ -378,25 +378,21 @@ local update_selection_indicators = function(unit_data)
   local width = 3
   local players = {player}
   local surface = unit.surface
-
-  local draw = function(a, b)
-    return
-      draw_line
-      {
-        color = color,
-        width = 1,
-        from = unit,
-        to = unit,
-        surface = surface,
-        players = players,
-        draw_on_ground = false,
-        from_offset = a,
-        to_offset = b,
-      }
-  end
+  local params =
+  {
+    color = color,
+    width = 1,
+    from = unit,
+    to = unit,
+    surface = surface,
+    players = players,
+    draw_on_ground = false,
+  }
 
   for k, points in pairs (box_points) do
-    unit_data.rendered_selection_box[k] = draw(points[1], points[2])
+    params.to_offset = points[1]
+    params.from_offset = points[2]
+    unit_data.rendered_selection_box[k] = draw_line(params)
   end
 
 end
