@@ -292,36 +292,112 @@ remove_target_indicator = function(unit_data)
 
 end
 
+local box_point_cache = {}
+local width = 0.2
+local get_collision_box_draw_points = function(entity)
+  local box = box_point_cache[entity.name]
+  if box then return box end
+  local collision_box = entity.prototype.collision_box
+  local box =
+  {
+    {
+      {collision_box.left_top.x, collision_box.left_top.y},
+      {collision_box.left_top.x + width, collision_box.left_top.y}
+    },
+    {
+      {collision_box.left_top.x, collision_box.left_top.y},
+      {collision_box.left_top.x, collision_box.left_top.y + width}
+    },
+    {
+      {collision_box.right_bottom.x, collision_box.left_top.y},
+      {collision_box.right_bottom.x - width, collision_box.left_top.y}
+    },
+    {
+      {collision_box.right_bottom.x, collision_box.left_top.y},
+      {collision_box.right_bottom.x, collision_box.left_top.y + width}
+    },
+    {
+      {collision_box.right_bottom.x, collision_box.right_bottom.y},
+      {collision_box.right_bottom.x - width, collision_box.right_bottom.y}
+    },
+    {
+      {collision_box.right_bottom.x, collision_box.right_bottom.y},
+      {collision_box.right_bottom.x, collision_box.right_bottom.y - width}
+    },
+    {
+      {collision_box.left_top.x, collision_box.right_bottom.y},
+      {collision_box.left_top.x + width, collision_box.right_bottom.y}
+    },
+    {
+      {collision_box.left_top.x, collision_box.right_bottom.y},
+      {collision_box.left_top.x, collision_box.right_bottom.y - width}
+    },
+  }
+  box_point_cache[entity.name] = box
+  return box
+end
+
 local update_selection_indicators = function(unit_data)
   --game.print("Updating selection indicators")
 
+  if unit_data.selection_indicator then
+    if unit_data.selection_indicator.valid then
+      unit_data.selection_indicator.destroy()
+    end
+    unit_data.selection_indicator = nil
+  end
+
   local player = unit_data.player
-
-  local indicator = unit_data.selection_indicator
-
   if not player then
-    if indicator and indicator.valid then
-      indicator.destroy()
-      unit_data.selection_indicator = nil
+    if unit_data.rendered_selection_box then
+      local destroy = rendering.destroy
+      for k, render_id in pairs (unit_data.rendered_selection_box) do
+        destroy(render_id)
+      end
+      unit_data.rendered_selection_box = nil
     end
     return
   end
 
-  if indicator and indicator.valid then
-    indicator.render_player = player
+  if unit_data.rendered_selection_box then
+    local set_players = rendering.set_players
+    local players = {player}
+    for k, render_id in pairs (unit_data.rendered_selection_box) do
+      set_players(render_id, players)
+    end
     return
   end
 
-  local unit = unit_data.entity
-  if not (unit and unit.valid) then game.print("NOT VALID WTF IN UPDATE SELECTION INDICATOR") return end
+  unit_data.rendered_selection_box = {}
 
-  unit_data.selection_indicator = unit.surface.create_entity
-  {
-    name = "highlight-box", box_type = "copy",
-    target = unit, render_player_index = player,
-    position = empty_position,
-    blink_interval = 0
-  }
+  local unit = unit_data.entity
+  local box_points = get_collision_box_draw_points(unit)
+
+  local draw_line = rendering.draw_line
+  local color = {0, 1, 0}
+  local width = 3
+  local players = {player}
+  local surface = unit.surface
+
+  local draw = function(a, b)
+    return
+      draw_line
+      {
+        color = color,
+        width = 1,
+        from = unit,
+        to = unit,
+        surface = surface,
+        players = players,
+        draw_on_ground = false,
+        from_offset = a,
+        to_offset = b,
+      }
+  end
+
+  for k, points in pairs (box_points) do
+    unit_data.rendered_selection_box[k] = draw(points[1], points[2])
+  end
 
 end
 
