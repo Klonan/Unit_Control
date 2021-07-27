@@ -4,6 +4,7 @@ Date: 2021-07-27
   Changes:
     - Some polish related to the select tool, such as over selecting blueprints.
     - Fix related to following target with no speed.
+    - Fix related to attacking entity with no health.
 ---------------------------------------------------------------------------------------------------
 Version: 0.3.6
 Date: 2021-07-25

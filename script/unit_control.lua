@@ -1698,7 +1698,7 @@ end
 local bulk_attack_closest = function(entities, group)
 
   for k, entity in pairs (entities) do
-    if not (entity.valid and entity.get_health_ratio() > 0) then
+    if not (entity.valid and (entity.get_health_ratio() or 0) > 0) then
       entities[k] = nil
     end
   end
@@ -2039,7 +2039,9 @@ local right_click = function(event)
     if force == player_force then
       follow_entity = entity
     elseif not player_force.get_cease_fire(entity.force) then
-      attack_entities[k] = entity
+      if entity.get_health_ratio() then
+        attack_entities[k] = entity
+      end
     end
   end
 
@@ -2079,7 +2081,9 @@ local shift_right_click = function(event)
     if force == player_force then
       follow_entity = entity
     elseif not player_force.get_cease_fire(entity.force) then
-      attack_entities[k] = entity
+      if entity.get_health_ratio() then
+        attack_entities[k] = entity
+      end
     end
   end
 
