@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.7
+Date: 2021-07-27
+  Changes:
+    - Some polish related to the select tool, such as over selecting blueprints.
+    - Fix related to following target with no speed.
+---------------------------------------------------------------------------------------------------
 Version: 0.3.6
 Date: 2021-07-25
   Changes:

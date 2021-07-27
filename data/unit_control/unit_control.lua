@@ -16,8 +16,7 @@ local unit_selection_tool =
   icon = path.."unit_select.png",
   icon_size = 1,
   stack_size = 1,
-  flags = {"not-stackable", "spawnable"},
-  show_in_library = true,
+  flags = {"not-stackable", "spawnable", "only-in-cursor"},
   selection_color = {g = 1},
   alt_selection_color = {g = 1, b = 1},
   draw_label_for_cursor_render = true,
@@ -195,5 +194,5 @@ data:extend{
   unit_patrol_tool,
   attack_move_cursor,
   unit_attack_move_tool,
-  select_units_shortcut
+  --select_units_shortcut
 }

@@ -1393,23 +1393,27 @@ local unit_follow = function(unit_data)
     return
   end
 
-  if distance(target.position, unit.position) > follow_range then
+  local speed = target.speed
+
+  if speed and distance(target.position, unit.position) > follow_range then
     set_command(unit_data,
     {
       type = defines.command.go_to_location,
       destination_entity = target,
-      radius = follow_range - 5
+      radius = follow_range - (target.get_radius() + unit.get_radius() + 1)
     })
     return
   end
-
+  if speed then
+    speed = math.max(0.05, math.min(unit.prototype.speed, speed * 1.05))
+  end
   local offset = get_move_offset(10 + unit.unit_number % 100, unit.get_radius())
   set_command(unit_data,
   {
     type = defines.command.go_to_location,
     destination = {target.position.x + offset.x, target.position.y + offset.y},
-    radius = 1,
-    speed = math.min(unit.prototype.speed, (target.speed or 999) * 1.05)
+    radius = target.get_radius() + unit.get_radius() + 1,
+    speed = speed
   })
 
 end
@@ -1868,7 +1872,7 @@ local validate_some_stuff = function()
 end
 
 local set_map_settings = function()
-  if remote.interfaces["wave_defense"] then return end
+  --if remote.interfaces["wave_defense"] then return end
   local settings = game.map_settings
 
   --settings.path_finder.max_steps_worked_per_tick = 10000
@@ -1977,49 +1981,54 @@ local allow_selection =
   ["unit-spawner"] = true
 }
 
-local left_click = function(event)
+local can_left_click = function(player)
 
-  local player = game.get_player(event.player_index)
-  if player.render_mode ~= defines.render_mode.game then
-    return
-  end
+  if player.render_mode ~= defines.render_mode.game then return end
+  if player.cursor_ghost then return end
+  if player.selected and not allow_selection[player.selected.type] then return end
+  if player.is_cursor_blueprint() then return end
+  if player.opened ~= get_frame(player.index) then return end
+  return true
+end
+
+local set_cursor_to_select = function(player)
   local stack = player.cursor_stack
   if not stack then return end
   if stack.valid_for_read then return end
 
-  if player.cursor_ghost then return end
-
-  if player.selected and not allow_selection[player.selected.type] then return end
-
-  if player.opened ~= get_frame(event.player_index) then return end
-
   stack.set_stack({name = "select-units"})
-  player.start_selection(event.cursor_position, "select")
+  return true
+end
+
+local left_click = function(event)
+
+  local player = game.get_player(event.player_index)
+  if not can_left_click(player) then
+    return
+  end
+  if set_cursor_to_select(player) then
+    player.start_selection(event.cursor_position, "select")
+  end
 end
 
 local shift_left_click = function(event)
 
   local player = game.get_player(event.player_index)
-  if player.selected and not allow_selection[player.selected.type] then return end
-  if player.opened ~= get_frame(event.player_index) then return end
-  local stack = player.cursor_stack
-  if not stack then return end
-  if stack.valid_for_read then return end
-  if player.cursor_ghost then return end
+  if not can_left_click(player) then
+    return
+  end
 
-  stack.set_stack({name = "select-units"})
-  player.start_selection(event.cursor_position, "alternative-select")
+  if set_cursor_to_select(player) then
+    player.start_selection(event.cursor_position, "alternative-select")
+  end
 end
 
 local right_click = function(event)
   local group = get_selected_units(event.player_index)
   if not group then return end
+
   local player = game.get_player(event.player_index)
-  if player.selected and not allow_selection[player.selected.type] then return end
-  if player.opened ~= get_frame(event.player_index) then return end
-  local stack = player.cursor_stack
-  if not stack then return end
-  if stack.valid_for_read then return end
+  if not player then return end
 
   local entities = player.surface.find_entities_filtered{position = event.cursor_position}
   local player_force = player.force
@@ -2055,13 +2064,11 @@ local right_click = function(event)
 end
 
 local shift_right_click = function(event)
-  if not get_selected_units(event.player_index) then return end
+  local group = get_selected_units(event.player_index)
+  if not group then return end
+
   local player = game.get_player(event.player_index)
-  if player.selected and not allow_selection[player.selected.type] then return end
-  if player.opened ~= get_frame(event.player_index) then return end
-  local stack = player.cursor_stack
-  if not stack then return end
-  if stack.valid_for_read then return end
+  if not player then return end
 
   local entities = player.surface.find_entities_filtered{position = event.cursor_position}
   local player_force = player.force
@@ -2088,11 +2095,7 @@ local shift_right_click = function(event)
     return
   end
 
-  if is_double_right_click(event) then
-    move_units_to_position(player, event.cursor_position, true)
-  else
-    attack_move_units_to_position(player, event.cursor_position, true)
-  end
+  attack_move_units_to_position(player, event.cursor_position, true)
 
 end
 
