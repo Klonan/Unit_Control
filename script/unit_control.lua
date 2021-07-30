@@ -1981,9 +1981,8 @@ local allow_selection =
   ["unit-spawner"] = true
 }
 
-local can_left_click = function(player)
-
-  if player.render_mode ~= defines.render_mode.game then return end
+local can_left_click = function(player, shift)
+  if not shift and player.render_mode ~= defines.render_mode.game then return end
   if player.cursor_ghost then return end
   if player.selected and not allow_selection[player.selected.type] then return end
   if player.is_cursor_blueprint() then return end
@@ -2014,7 +2013,7 @@ end
 local shift_left_click = function(event)
 
   local player = game.get_player(event.player_index)
-  if not can_left_click(player) then
+  if not can_left_click(player, true) then
     return
   end
 
