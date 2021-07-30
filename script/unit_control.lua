@@ -1950,12 +1950,33 @@ local queue_hold_position_hotkey = function(event)
   hold_position_group(game.get_player(event.player_index), true)
 end
 
+local unit_names
+local get_unit_names = function()
+  if unit_names then return unit_names end
+  unit_names = {}
+  for name, prototype in pairs (game.item_prototypes["select-units"].entity_filters) do
+    if prototype.type == "unit" then
+      table.insert(unit_names, name)
+    end
+  end
+  return unit_names
+end
+
 local select_all_units_hotkey = function(event)
   local player = game.get_player(event.player_index)
   if not (player and player.valid) then return end
 
   clear_selected_units(player)
-  local entities = player.surface.find_entities_filtered{force = player.force, type = "unit"}
+
+  local names = get_unit_names()
+  if not next(unit_names) then return end
+  local entities = player.surface.find_entities_filtered
+  {
+    position = event.cursor_position or {0,0},
+    force = player.force,
+    name = unit_names,
+    radius = 200
+  }
   process_unit_selection(entities, player)
 
 end
@@ -2110,17 +2131,20 @@ local unit_control = {}
 
 unit_control.events =
 {
-  [defines.events.on_player_selected_area] = on_player_selected_area,
+  [defines.events.on_tick] = on_tick,
   [defines.events.on_entity_settings_pasted] = on_entity_settings_pasted,
+  [defines.events.on_player_selected_area] = on_player_selected_area,
   [defines.events.on_player_alt_selected_area] = on_player_alt_selected_area,
   [defines.events.on_gui_click] = on_gui_click,
+  [defines.events.on_gui_closed] = on_gui_closed,
+
   [defines.events.on_entity_died] = on_entity_removed,
   [defines.events.on_robot_mined_entity] = on_entity_removed,
   [defines.events.on_player_mined_entity] = on_entity_removed,
   [defines.events.script_raised_destroy] = on_entity_removed,
+
   [defines.events.on_ai_command_completed] = on_ai_command_completed,
-  [defines.events.on_tick] = on_tick,
-  [defines.events.on_gui_closed] = on_gui_closed,
+  [defines.events.on_unit_added_to_group] = on_unit_added_to_group,
 
   [names.hotkeys.suicide] = suicide,
   [names.hotkeys.suicide_all] = suicide_all,
@@ -2128,12 +2152,12 @@ unit_control.events =
   [names.hotkeys.queue_stop] = queue_stop_hotkey,
   [names.hotkeys.hold_position] = hold_position_hotkey,
   [names.hotkeys.queue_hold_position] = queue_hold_position_hotkey,
+
   [defines.events.on_player_died] = on_player_removed,
   [defines.events.on_player_left_game] = on_player_removed,
   [defines.events.on_player_changed_force] = on_player_removed,
-  [defines.events.on_unit_added_to_group] = on_unit_added_to_group,
-
   [defines.events.on_player_changed_surface] = on_player_removed,
+
   [defines.events.on_surface_deleted] = validate_some_stuff,
   [defines.events.on_surface_cleared] = validate_some_stuff,
   [defines.events.on_entity_spawned] = on_entity_spawned,
@@ -2143,6 +2167,7 @@ unit_control.events =
   ["shift-left-click"] = shift_left_click,
   ["right-click"] = right_click,
   ["shift-right-click"] = shift_right_click,
+  [names.hotkeys.select_all_units] = select_all_units_hotkey,
 }
 
 unit_control.on_init = function()

@@ -3,6 +3,7 @@ Version: 0.3.8
 Date: 2021-07-30
   Changes:
     - Fix shift-drag selection in map view.
+    - Fix select all units hotkey, also limited it to 200 tiles radius of the click position
 ---------------------------------------------------------------------------------------------------
 Version: 0.3.7
 Date: 2021-07-27
