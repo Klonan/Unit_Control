@@ -77,11 +77,7 @@ local set_command = function(unit_data, command)
   unit_data.in_group = nil
   unit.speed = command.speed or unit.prototype.speed
   unit.ai_settings.path_resolution_modifier = command.path_resolution_modifier or -2
-  if command.do_separation ~= nil then
-    unit.ai_settings.do_separation = command.do_separation
-  else
-    unit.ai_settings.do_separation = true
-  end
+  unit.ai_settings.do_separation = command.do_separation or true
   unit.set_command(command)
   return add_unit_indicators(unit_data)
 end
@@ -1113,7 +1109,7 @@ end
 
 local positions = {}
 local turn_rate = (math.pi * 2) / 1.618
-local size_scale = 1.4
+local size_scale = 1
 local get_move_offset = function(n, size)
   local size = (size or 1) * size_scale
   local position = positions[n]
@@ -1142,9 +1138,10 @@ local path_flags =
   no_break = true
 }
 
+local min = 1
 local get_group_size_and_speed = function(group)
   local speed = math.huge
-  local size = 0.5
+  local size = 0
   local checked = {}
   for k, entity in pairs (group) do
     if not checked[entity.name] then
@@ -1153,8 +1150,9 @@ local get_group_size_and_speed = function(group)
         if entity.prototype.speed < speed then
           speed = entity.prototype.speed
         end
-        if entity.get_radius() > size then
-          size = entity.get_radius()
+        local entity_size = min + entity.get_radius()
+        if entity_size > size then
+          size = entity_size
         end
       end
     end
@@ -1194,7 +1192,7 @@ local make_move_command = function(param)
       speed = speed,
       pathfind_flags = path_flags,
       destination = destination,
-      do_separation = false
+      do_separation = true
     }
     local unit_data = units[unit_number]
     if append then
@@ -1326,7 +1324,7 @@ local make_patrol_command = function(param)
         destinations = {entity.position, next_destination},
         destination_index = "initial",
         speed = speed,
-        do_separation = false
+        do_separation = true
       }
     end
     if not append then
