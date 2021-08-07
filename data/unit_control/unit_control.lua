@@ -185,6 +185,14 @@ local select_units_shortcut =
   }
 }
 
+local selection_circle =
+{
+  type = "sprite",
+  name = "selection-circle",
+  filename = path.."selection-circle-grey.png",
+  size = 418
+}
+
 data:extend{
   unit_selection_tool,
   move_confirm_sound,
@@ -194,5 +202,6 @@ data:extend{
   unit_patrol_tool,
   attack_move_cursor,
   unit_attack_move_tool,
+  selection_circle,
   --select_units_shortcut
 }

@@ -337,30 +337,32 @@ end
 
 local draw_temp_attack_indicator = function(entity, player)
   if not player then return end
-  local box_points = get_collision_box_draw_points(entity)
 
-  local draw_line = rendering.draw_line
   local color = {1, 0, 0}
   local width = 2
   local players = {player}
   local surface = entity.surface
-  local params =
+  local scale = (32/418) * ((entity.get_radius() * 2) + 0.25)
+  rendering.draw_sprite
   {
-    color = color,
-    width = width,
-    from = entity,
-    to = entity,
+    sprite = "selection-circle",
+    --orientation = …,
+    x_scale = scale,
+    y_scale = scale/(2^0.5),
+    tint = color,
+    time_to_live = 100,
+    render_layer = "lower-object-above-shadow",
+    --orientation_target = …,
+    --orientation_target_offset = …,
+    --oriented_offset = …,
+    target = entity,
+    --target_offset = …,
     surface = surface,
     players = players,
-    draw_on_ground = false,
-    time_to_live = 100
+    visible = true,
+    only_in_alt_mode = false
   }
 
-  for k, points in pairs (box_points) do
-    params.to_offset = points[1]
-    params.from_offset = points[2]
-    draw_line(params)
-  end
 end
 
 local clear_selection_indicator = function(unit_data)
@@ -410,22 +412,27 @@ local update_selection_indicators = function(unit_data)
   local width = 2
   local players = {player}
   local surface = unit.surface
-  local params =
+  local scale = (32/418) * ((unit.get_radius() * 2) + 0.25)
+
+  unit_data.rendered_selection_box[1] = rendering.draw_sprite
   {
-    color = color,
-    width = width,
-    from = unit,
-    to = unit,
+    sprite = "selection-circle",
+    --orientation = …,
+    x_scale = scale,
+    y_scale = scale/(2^0.5),
+    tint = color,
+
+    render_layer = "lower-object-above-shadow",
+    --orientation_target = …,
+    --orientation_target_offset = …,
+    --oriented_offset = …,
+    target = unit,
+    --target_offset = …,
     surface = surface,
     players = players,
-    draw_on_ground = false,
+    visible = true,
+    only_in_alt_mode = false
   }
-
-  for k, points in pairs (box_points) do
-    params.to_offset = points[1]
-    params.from_offset = points[2]
-    unit_data.rendered_selection_box[k] = draw_line(params)
-  end
 
 end
 
@@ -2004,7 +2011,7 @@ local can_left_click = function(player, shift)
   if not shift and player.render_mode ~= defines.render_mode.game then return end
   if player.cursor_ghost then return end
   if player.selected and not allow_selection[player.selected.type] then return end
-  if player.is_cursor_blueprint() then return end
+  if not player.is_cursor_empty() then return end
   if player.opened ~= get_frame(player.index) then return end
   return true
 end
