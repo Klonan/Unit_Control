@@ -352,7 +352,6 @@ local draw_temp_attack_indicator = function(entity, player)
   local width = 2
   local players = {player}
   local surface = entity.surface
-  local radius = get_radius(entity)
   local scale = (32/418) * get_selection_radius(entity)
   rendering.draw_sprite
   {
@@ -1919,7 +1918,10 @@ local on_entity_spawned = function(event)
   if unit.type ~= "unit" then return end
   --print("Unit deployed: "..unit.name)
   local source_data = script_data.units[source.unit_number]
-  if not source_data then return end
+  if not source_data then
+    unit.set_command({type = defines.command.wander, radius = source.get_radius()})
+    return
+  end
 
   --print("Unit deployer source queue found: ")
   --print(serpent.block(source_data))

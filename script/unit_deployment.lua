@@ -48,12 +48,14 @@ local deploy_unit = function(source, prototype, count)
   for k = 1, count do
     if not surface.valid then break end
     if not source.valid then break end
-    local deploy_position = can_place_entity{name = name, position = position, direction = direction, force = force, build_check_type = defines.build_check_type.manual} and position or find_non_colliding_position(name, position, 0, 1)
-    local unit = create_entity{name = name, position = deploy_position, force = force, direction = direction, raise_built = true}
-    if unit and unit.valid then
-      script.raise_event(unit_spawned_event, {entity = unit, spawner = source})
+    local deploy_position = can_place_entity{name = name, position = position, direction = direction, force = force, build_check_type = defines.build_check_type.manual} and position or find_non_colliding_position(name, position, 3, 0.5)
+    if deploy_position then
+      local unit = create_entity{name = name, position = deploy_position, force = force, direction = direction, raise_built = true}
+      if unit and unit.valid then
+        script.raise_event(unit_spawned_event, {entity = unit, spawner = source})
+      end
+      deployed = deployed + 1
     end
-    deployed = deployed + 1
   end
   return deployed
 end
@@ -73,6 +75,10 @@ local check_deployer = function(entity)
   local progress = entity.crafting_progress
   local speed = entity.crafting_speed --How much energy per second
   local remaining_ticks = 1 + math.ceil(((recipe.energy * (1 - progress)) / speed) * 60)
+  if remaining_ticks == 1 then
+    --The output is blocked or something.
+    remaining_ticks = no_recipe_check_again
+  end
   local check_tick = game.tick + remaining_ticks
   script_data.tick_check[check_tick] = script_data.tick_check[check_tick] or {}
   script_data.tick_check[check_tick][entity.unit_number] = entity
