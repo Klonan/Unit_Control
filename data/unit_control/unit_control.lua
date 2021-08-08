@@ -190,7 +190,8 @@ local selection_circle =
   type = "sprite",
   name = "selection-circle",
   filename = path.."selection-circle-grey.png",
-  size = 418
+  size = 418,
+  draw_as_glow = true
 }
 
 data:extend{
