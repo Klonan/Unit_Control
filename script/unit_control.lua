@@ -1,3 +1,4 @@
+local util = require("script/script_util")
 local tool_names = names.unit_tools
 local script_data =
 {
@@ -335,6 +336,15 @@ local get_collision_box_draw_points = function(entity)
   return box
 end
 
+local radius_cache = {}
+local get_selection_radius = function(entity)
+  local radius = radius_cache[entity.name]
+  if radius then return radius end
+  radius = (util.radius(entity.prototype.selection_box) * 2) + 0.5
+  radius_cache[entity.name] = radius
+  return radius
+end
+
 local draw_temp_attack_indicator = function(entity, player)
   if not player then return end
 
@@ -342,7 +352,8 @@ local draw_temp_attack_indicator = function(entity, player)
   local width = 2
   local players = {player}
   local surface = entity.surface
-  local scale = (32/418) * ((entity.get_radius() * 2) + 0.25)
+  local radius = get_radius(entity)
+  local scale = (32/418) * get_selection_radius(entity)
   rendering.draw_sprite
   {
     sprite = "selection-circle",
@@ -412,7 +423,7 @@ local update_selection_indicators = function(unit_data)
   local width = 2
   local players = {player}
   local surface = unit.surface
-  local scale = (32/418) * ((unit.get_radius() * 2) + 0.25)
+  local scale = (32/418) * get_selection_radius(unit)
 
   unit_data.rendered_selection_box[1] = rendering.draw_sprite
   {
@@ -615,7 +626,7 @@ local reset_rendering = function()
 end
 
 local stop = {type = defines.command.stop}
-local idle_command = {type = defines.command.stop, radius = 1}
+local idle_command = {type = defines.command.wander, radius = 0.5}
 local hold_position_command = {type = defines.command.stop, speed = 0}
 
 set_unit_idle = function(unit_data)
@@ -2008,7 +2019,7 @@ local allow_selection =
 }
 
 local can_left_click = function(player, shift)
-  if not shift and player.render_mode ~= defines.render_mode.game then return end
+  if not shift and player.render_mode == defines.render_mode.chart then return end
   if player.cursor_ghost then return end
   if player.selected and not allow_selection[player.selected.type] then return end
   if not player.is_cursor_empty() then return end
