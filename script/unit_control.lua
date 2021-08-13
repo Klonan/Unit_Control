@@ -1684,9 +1684,37 @@ process_command_queue = function(unit_data, event)
 
 end
 
+local process_distraction_completed = function(event)
+
+  local unit_data = script_data.units[event.unit_number]
+  if not unit_data then return end
+
+  local unit = unit_data.entity
+  if not (unit and unit.valid) then return end
+
+  local enemy = unit.surface.find_nearest_enemy
+  {
+    position = unit.position,
+    max_distance = 20,
+    force = unit.force
+  }
+
+  if enemy then
+    unit.set_distraction_command
+    {
+      type = defines.command.attack,
+      target = enemy
+    }
+  end
+
+end
+
 local on_ai_command_completed = function(event)
   --print("Ai command complete "..event.unit_number)
-  if event.was_distracted then return end
+  if event.was_distracted then
+    process_distraction_completed(event)
+    return
+  end
   local unit_data = script_data.units[event.unit_number]
   if unit_data then
     return process_command_queue(unit_data, event)
