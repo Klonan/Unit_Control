@@ -13,6 +13,7 @@ local script_data =
   debug = false,
   marked_for_refresh = {},
   last_selection_tick = {},
+  last_right_click_position = nil,
   target_indicators = {},
   attack_register = {},
   last_location = {}
@@ -963,28 +964,46 @@ local is_double_click = function(event)
   if radius > 1 then return end
 
   local last_selection_tick = script_data.last_selection_tick[event.player_index]
+  script_data.last_selection_tick[event.player_index] = event.tick
 
   if not last_selection_tick then
-    script_data.last_selection_tick[event.player_index] = event.tick
     return
   end
 
-  local duration = event.tick - last_selection_tick
-  script_data.last_selection_tick[event.player_index] = event.tick
 
+  local click_position = this_area.left_top
+  local position = script_data.last_left_click_position
+  script_data.last_left_click_position = click_position
+
+  if position and click_position then
+    if util.distance(position, click_position) > 1 then
+      return
+    end
+  end
+
+  local duration = event.tick - last_selection_tick
   return duration <= double_click_delay
 end
 
 local is_double_right_click = function(event)
   local last_selection_tick = script_data.last_selection_tick[event.player_index]
+  script_data.last_selection_tick[event.player_index] = event.tick
 
   if not last_selection_tick then
-    script_data.last_selection_tick[event.player_index] = event.tick
     return
   end
 
+  local click_position = event.cursor_position
+  local position = script_data.last_right_click_position
+  script_data.last_right_click_position = click_position
+
+  if position and click_position then
+    if util.distance(position, click_position) > 1 then
+      return
+    end
+  end
+
   local duration = event.tick - last_selection_tick
-  script_data.last_selection_tick[event.player_index] = event.tick
 
   return duration <= double_click_delay
 end
@@ -995,6 +1014,14 @@ local select_similar_nearby = function(entity)
   local origin = entity.position
   local area = {{origin.x - r, origin.y - r},{origin.x + r, origin.y + r}}
   return entity.surface.find_entities_filtered{area = area, force = entity.force, name = entity.name}
+end
+
+local check_refresh_gui = function()
+  if not next(script_data.marked_for_refresh) then return end
+  for player_index, bool in pairs (script_data.marked_for_refresh) do
+    make_unit_gui(game.get_player(player_index))
+  end
+  script_data.marked_for_refresh = {}
 end
 
 local process_unit_selection = function(entities, player)
@@ -1049,6 +1076,7 @@ local process_unit_selection = function(entities, player)
     player.opened = frame
   end
   script_data.marked_for_refresh[player_index] = true
+  check_refresh_gui()
 end
 
 local clear_selected_units = function(player)
@@ -1684,6 +1712,75 @@ process_command_queue = function(unit_data, event)
 
 end
 
+local wants_enemy_attack =
+{
+  [defines.distraction.by_enemy] = true,
+  [defines.distraction.by_anything] = true
+}
+
+local entity_with_health_types =
+{
+  "container", "storage-tank", "transport-belt", "underground-belt", "splitter", "loader", "inserter", "electric-pole", "pipe", "pipe-to-ground", "pump", "curved-rail", "straight-rail", "train-stop", "rail-signal", "rail-chain-signal", "locomotive", "cargo-wagon", "fluid-wagon", "artillery-wagon", "car", "spider-vehicle", "logistic-robot", "construction-robot", "logistic-container", "roboport", "lamp", "arithmetic-combinator", "decider-combinator", "constant-combinator", "power-switch", "programmable-speaker", "boiler", "generator", "solar-panel", "accumulator", "reactor", "heat-pipe", "mining-drill", "offshore-pump", "furnace", "assembling-machine", "lab", "beacon", "rocket-silo", "unit", "land-mine", "wall", "gate", "ammo-turret", "electric-turret", "fluid-turret", "artillery-turret", "radar", "simple-entity-with-force", "simple-entity-with-owner", "electric-energy-interface", "linked-container", "heat-interface", "linked-belt", "infinity-container", "infinity-pipe", "burner-generator", "player-port", "combat-robot", "turret", "unit-spawner", "character", "fish", "tree", "simple-entity", "loader-1x1", "spider-leg", "market"
+}
+
+local has_enough_health = function(entity)
+  return (entity.health - entity.get_damage_to_be_taken()) > 0
+end
+
+local select_distraction_target = function(unit)
+  local command = unit.command
+  local distraction = (command and command.distraction) or defines.distraction.by_enemy
+
+  if not wants_enemy_attack[distraction] then
+    return
+  end
+
+  local surface = unit.surface
+  local position = unit.position
+  local max_distance = unit.prototype.vision_distance
+  local force = unit.force
+
+  local enemy = surface.find_nearest_enemy
+  {
+    position = position,
+    max_distance = max_distance,
+    force = force
+  }
+
+  if enemy and has_enough_health(enemy) then
+    return enemy
+  end
+
+  if distraction ~= defines.distraction.by_anything then
+    return
+  end
+
+  local enemy_force
+  local current_distraction = unit.distraction_command
+  if current_distraction then
+    local current_target = current_distraction.target
+    if current_target then
+      enemy_force = current_target.force
+    end
+  end
+  if not enemy_force then return end
+
+  local entities = surface.find_entities_filtered
+  {
+    position = position,
+    radius = max_distance,
+    force = enemy_force,
+    type = entity_with_health_types
+  }
+  if not next(entities) then return end
+
+  local closest = surface.get_closest(position, entities)
+  if closest and has_enough_health(closest) then
+    return closest
+  end
+
+end
+
 local process_distraction_completed = function(event)
 
   local unit_data = script_data.units[event.unit_number]
@@ -1692,25 +1789,20 @@ local process_distraction_completed = function(event)
   local unit = unit_data.entity
   if not (unit and unit.valid) then return end
 
-  local enemy = unit.surface.find_nearest_enemy
-  {
-    position = unit.position,
-    max_distance = 20,
-    force = unit.force
-  }
+  local enemy = select_distraction_target(unit)
 
-  if enemy then
-    unit.set_distraction_command
-    {
-      type = defines.command.attack,
-      target = enemy
-    }
-  end
+  if not enemy then return end
+
+  unit.set_distraction_command
+  {
+    type = defines.command.attack,
+    target = enemy
+  }
 
 end
 
 local on_ai_command_completed = function(event)
-  --print("Ai command complete "..event.unit_number)
+  --game.print(event.tick.." - Ai command complete "..event.unit_number)
   if event.was_distracted then
     process_distraction_completed(event)
     return
@@ -1728,14 +1820,6 @@ local on_ai_command_completed = function(event)
     return
   end
   ]]
-end
-
-local check_refresh_gui = function()
-  if not next(script_data.marked_for_refresh) then return end
-  for player_index, bool in pairs (script_data.marked_for_refresh) do
-    make_unit_gui(game.get_player(player_index))
-  end
-  script_data.marked_for_refresh = {}
 end
 
 local bulk_attack_closest = function(entities, group)
