@@ -1735,49 +1735,15 @@ local select_distraction_target = function(unit)
     return
   end
 
+  local params =
+  {
+    position = unit.position,
+    max_distance = unit.prototype.vision_distance,
+    force = unit.force
+  }
+
   local surface = unit.surface
-  local position = unit.position
-  local max_distance = unit.prototype.vision_distance
-  local force = unit.force
-
-  local enemy = surface.find_nearest_enemy
-  {
-    position = position,
-    max_distance = max_distance,
-    force = force
-  }
-
-  if enemy and has_enough_health(enemy) then
-    return enemy
-  end
-
-  if distraction ~= defines.distraction.by_anything then
-    return
-  end
-
-  local enemy_force
-  local current_distraction = unit.distraction_command
-  if current_distraction then
-    local current_target = current_distraction.target
-    if current_target then
-      enemy_force = current_target.force
-    end
-  end
-  if not enemy_force then return end
-
-  local entities = surface.find_entities_filtered
-  {
-    position = position,
-    radius = max_distance,
-    force = enemy_force,
-    type = entity_with_health_types
-  }
-  if not next(entities) then return end
-
-  local closest = surface.get_closest(position, entities)
-  if closest and has_enough_health(closest) then
-    return closest
-  end
+  return surface.find_nearest_enemy(params) or (distraction == defines.distraction.by_anything and surface.find_nearest_enemy_entity_with_owner(params))
 
 end
 
@@ -1802,7 +1768,7 @@ local process_distraction_completed = function(event)
 end
 
 local on_ai_command_completed = function(event)
-  --game.print(event.tick.." - Ai command complete "..event.unit_number)
+  game.print(event.tick.." - Ai command complete "..event.unit_number)
   if event.was_distracted then
     process_distraction_completed(event)
     return
