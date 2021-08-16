@@ -1768,7 +1768,7 @@ local process_distraction_completed = function(event)
 end
 
 local on_ai_command_completed = function(event)
-  game.print(event.tick.." - Ai command complete "..event.unit_number)
+  --game.print(event.tick.." - Ai command complete "..event.unit_number)
   if event.was_distracted then
     process_distraction_completed(event)
     return
