@@ -626,10 +626,10 @@ local reset_rendering = function()
 end
 
 local stop = {type = defines.command.stop}
-local idle_command = {type = defines.command.wander, radius = 0.5}
 local hold_position_command = {type = defines.command.stop, speed = 0}
 
 set_unit_idle = function(unit_data)
+  local idle_command = {type = defines.command.wander, radius = 0.5, distraction = unit_data.distraction}
   unit_data.idle = true
   unit_data.command_queue = {}
   unit_data.destination = nil
@@ -1338,7 +1338,7 @@ local process_command_queue
 
 local make_patrol_command = function(param)
   local origin = param.position
-  local distraction = param.distraction or defines.distraction.by_enemy
+  local distraction = param.distraction or defines.distraction.by_anything
   local group = param.group
   local player = param.player
   local surface = player.surface
@@ -1348,7 +1348,6 @@ local make_patrol_command = function(param)
   local find = surface.find_non_colliding_position
   local insert = table.insert
   local units = script_data.units
-
 
   local size, speed = get_group_size_and_speed(group)
   local i = 0
@@ -1369,7 +1368,8 @@ local make_patrol_command = function(param)
         destinations = {entity.position, next_destination},
         destination_index = "initial",
         speed = speed,
-        do_separation = true
+        do_separation = true,
+        distraction = distraction
       }
     end
     if not append then
@@ -1394,7 +1394,7 @@ local patrol_units = function(event)
   local player = game.players[event.player_index]
   make_patrol_command{
     position = util.center(event.area),
-    distraction = defines.distraction.by_enemy,
+    distraction = defines.distraction.by_anything,
     group = group,
     append = event.name == defines.events.on_player_alt_selected_area,
     player = player
@@ -1680,7 +1680,8 @@ process_command_queue = function(unit_data, event)
     {
       type = defines.command.go_to_location,
       destination = entity.surface.find_non_colliding_position(entity.name, next_destination, 0, 0.5) or entity.position,
-      radius = 1
+      radius = 1,
+      distraction = next_command.distraction
     })
     return
   end
