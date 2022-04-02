@@ -16,7 +16,8 @@ local script_data =
   last_right_click_position = nil,
   target_indicators = {},
   attack_register = {},
-  last_location = {}
+  last_location = {},
+  delayed_calls = {}
 }
 
 local empty_position = {0,0}
@@ -1703,7 +1704,10 @@ process_command_queue = function(unit_data, event)
 
   if type == next_command_type.follow then
     --print("Follow")
-    return unit_follow(unit_data)
+    table.insert(script_data.delayed_calls, {
+      function(event_data) unit_follow(event_data) end,
+      unit_data
+    })
   end
 
   if type == next_command_type.hold_position then
@@ -1852,8 +1856,20 @@ local process_attack_register = function(tick)
 
 end
 
+local process_delayed_calls = function(event)
+  if event.tick % 61 ~= 0 then return end
+  if script_data.delayed_calls then
+    for index, data in pairs (script_data.delayed_calls) do
+      data[1](data[2])
+      table.remove(script_data.delayed_calls, index)
+    end
+  end
+end
+
+
 local on_tick = function(event)
   process_attack_register(event.tick)
+  process_delayed_calls(event)
   check_refresh_gui()
 end
 
@@ -2276,6 +2292,7 @@ unit_control.on_configuration_changed = function(configuration_changed_data)
   set_map_settings()
   reset_rendering()
   script_data.last_location = script_data.last_location or {}
+  script_data.delayed_calls = script_data.delayed_calls or {}
 end
 
 unit_control.on_load = function()
