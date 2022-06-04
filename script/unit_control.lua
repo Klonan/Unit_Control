@@ -2117,30 +2117,23 @@ local set_cursor_to_select = function(player)
   return true
 end
 
-local left_click = function(event)
+local left_click = function(event, shift)
 
   local player = game.get_player(event.player_index)
   if not can_left_click(player) then
     return
   end
+
   if set_cursor_to_select(player) then
-    player.start_selection(event.cursor_position, "select")
+    player.start_selection(event.cursor_position, (shift and "alternative-select") or "select")
   end
 end
 
 local shift_left_click = function(event)
-
-  local player = game.get_player(event.player_index)
-  if not can_left_click(player, true) then
-    return
-  end
-
-  if set_cursor_to_select(player) then
-    player.start_selection(event.cursor_position, "alternative-select")
-  end
+  left_click(event, true)
 end
 
-local right_click = function(event)
+local right_click = function(event, shift)
   local group = get_selected_units(event.player_index)
   if not group then return end
 
@@ -2163,61 +2156,27 @@ local right_click = function(event)
   end
 
   if next(attack_entities) then
-    make_attack_command(group, attack_entities, false)
+    make_attack_command(group, attack_entities, shift)
     player.play_sound({path = tool_names.unit_move_sound})
     return
   end
 
   if follow_entity then
-    make_follow_command(group, follow_entity, false)
+    make_follow_command(group, follow_entity, shift)
     player.play_sound({path = tool_names.unit_move_sound})
     return
   end
 
-  if is_double_right_click(event) then
+  if not shift and is_double_right_click(event) then
     move_units_to_position(player, event.cursor_position)
   else
-    attack_move_units_to_position(player, event.cursor_position)
+    attack_move_units_to_position(player, event.cursor_position, shift)
   end
 
 end
 
 local shift_right_click = function(event)
-  local group = get_selected_units(event.player_index)
-  if not group then return end
-
-  local player = game.get_player(event.player_index)
-  if not player then return end
-
-  local entities = player.surface.find_entities_filtered{position = event.cursor_position}
-  local player_force = player.force
-  local attack_entities = {}
-  local follow_entity
-  for k, entity in pairs(entities) do
-    local force = entity.force
-    if force == player_force then
-      follow_entity = entity
-    elseif not player_force.get_cease_fire(entity.force) then
-      if entity.get_health_ratio() then
-        attack_entities[k] = entity
-      end
-    end
-  end
-
-  if next(attack_entities) then
-    make_attack_command(group, attack_entities, true)
-    player.play_sound({path = tool_names.unit_move_sound})
-    return
-  end
-
-  if follow_entity then
-    make_follow_command(group, follow_entity, true)
-    player.play_sound({path = tool_names.unit_move_sound})
-    return
-  end
-
-  attack_move_units_to_position(player, event.cursor_position, true)
-
+  right_click(event, true)
 end
 
 local on_gui_closed = function(event)
