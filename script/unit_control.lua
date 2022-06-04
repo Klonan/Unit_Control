@@ -16,7 +16,8 @@ local script_data =
   last_right_click_position = nil,
   target_indicators = {},
   attack_register = {},
-  last_location = {}
+  last_location = {},
+  clear_on_stack_change = {},
 }
 
 local empty_position = {0,0}
@@ -76,7 +77,6 @@ local set_command = function(unit_data, command)
   unit_data.distraction = command.distraction
   unit_data.destination_entity = command.destination_entity
   unit_data.target = command.target
-  unit_data.in_group = nil
   unit.speed = command.speed or unit.prototype.speed
   unit.ai_settings.path_resolution_modifier = command.path_resolution_modifier or -2
   unit.ai_settings.do_separation = command.do_separation or true
@@ -456,7 +456,7 @@ local clear_indicators = function(unit_data)
   unit_data.indicators = nil
 end
 
-local deselect_units = function(unit_data)
+local deselect_unit = function(unit_data)
   if unit_data.player then
     script_data.marked_for_refresh[unit_data.player] = true
     unit_data.player = nil
@@ -517,21 +517,6 @@ add_unit_indicators = function(unit_data)
 
   local surface = unit.surface
   local players = {unit_data.player}
-
-  --[[
-
-    if unit_data.in_group then
-      indicators[rendering.draw_text
-      {
-        text="In group",
-        surface=surface,
-        target=unit,
-        color={g = 0.5},
-        scale_with_zoom=true
-      }] = true
-      return
-    end
-    ]]
 
   local rendering = rendering
   local draw_line = rendering.draw_line
@@ -700,6 +685,27 @@ local hold_position_group = function(player, queue)
   player.play_sound({path = tool_names.unit_move_sound})
 end
 
+local clear_selected_units = function(player_index)
+
+  local group = get_selected_units(player_index)
+  if not group then return end
+
+  local units = script_data.units
+  for unit_number, ent in pairs (group) do
+    deselect_unit(units[unit_number])
+    group[unit_number] = nil
+  end
+
+end
+
+local check_refresh_gui
+
+local clear_player_group = function(player_index)
+  clear_selected_units(player_index)
+  script_data.selected_units[player_index] = nil
+  check_refresh_gui()
+end
+
 local gui_actions =
 {
   move_button = function(event)
@@ -709,6 +715,7 @@ local gui_actions =
     if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_move_tool}
   end,
+
   patrol_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
@@ -716,6 +723,7 @@ local gui_actions =
     if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_patrol_tool}
   end,
+
   attack_move_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
@@ -723,6 +731,7 @@ local gui_actions =
     if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_attack_move_tool}
   end,
+
   attack_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
@@ -730,6 +739,7 @@ local gui_actions =
     if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_attack_tool}
   end,
+
   force_attack_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
@@ -737,6 +747,7 @@ local gui_actions =
     if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_force_attack_tool}
   end,
+
   follow_button = function(event)
     local player = game.players[event.player_index]
     if not (player and player.valid) then return end
@@ -744,12 +755,15 @@ local gui_actions =
     if not player.cursor_stack then return end
     player.cursor_stack.set_stack{name = tool_names.unit_follow_tool}
   end,
+
   hold_position_button = function(event)
     hold_position_group(game.get_player(event.player_index), event.shift)
   end,
+
   stop_button = function(event)
     stop_group(game.get_player(event.player_index), event.shift)
   end,
+
   scout_button = function(event)
     local group = get_selected_units(event.player_index)
     if not group then
@@ -769,18 +783,11 @@ local gui_actions =
     end
     game.get_player(event.player_index).play_sound({path = tool_names.unit_move_sound})
   end,
-  exit_button = function(event)
-    local group = get_selected_units(event.player_index)
-    if not group then return end
 
-    local units = script_data.units
-    for unit_number, entity in pairs (group) do
-      deselect_units(units[unit_number])
-      group[unit_number] = nil
-    end
-    script_data.selected_units[event.player_index] = nil
-    --The GUI should be destroyed in the on_tick anyway.
+  exit_button = function(event)
+    clear_player_group(event.player_index)
   end,
+
   selected_units_button = function(event, action)
     local unit_name = action.unit
     local group = get_selected_units(event.player_index)
@@ -802,7 +809,7 @@ local gui_actions =
         for unit_number, entity in pairs (group) do
           if entity.name == unit_name then
             if count > to_leave then
-              deselect_units(units[unit_number])
+              deselect_unit(units[unit_number])
               group[unit_number] = nil
             end
             count = count + 1
@@ -811,7 +818,7 @@ local gui_actions =
       else
         for unit_number, entity in pairs (group) do
           if entity.name == unit_name then
-            deselect_units(units[unit_number])
+            deselect_unit(units[unit_number])
             group[unit_number] = nil
             break
           end
@@ -823,14 +830,14 @@ local gui_actions =
       if event.shift then
         for unit_number, entity in pairs (group) do
           if entity.name == unit_name then
-            deselect_units(units[unit_number])
+            deselect_unit(units[unit_number])
             group[unit_number] = nil
           end
         end
       else
         for unit_number, entity in pairs (group) do
           if entity.name ~= unit_name then
-            deselect_units(units[unit_number])
+            deselect_unit(units[unit_number])
             group[unit_number] = nil
           end
         end
@@ -874,19 +881,12 @@ local make_unit_gui = function(player)
   local group = get_selected_units(index)
 
   if not group then
-    --player.game_view_settings.update_entity_selection = true
     script_data.last_location[index] = frame.location
     frame.destroy()
     return
   end
 
-  --player.game_view_settings.update_entity_selection = true
-  --player.update_selected_entity({2000000, 2000000})
-  --player.clear_selected_entity()
-  --player.selected = nil
-  --player.game_view_settings.update_entity_selection = false
-  --player.clear_selected_entity()
-  --player.selected = nil
+  script_data.clear_on_stack_change[index] = true
 
   frame.clear()
   local header_flow = frame.add{type = "flow", direction = "horizontal"}
@@ -941,7 +941,7 @@ deregister_unit = function(entity)
   if not unit then return end
   script_data.units[unit_number] = nil
 
-  deselect_units(unit)
+  deselect_unit(unit)
 
   local group = unit.group
   if group then
@@ -1016,7 +1016,7 @@ local select_similar_nearby = function(entity)
   return entity.surface.find_entities_filtered{area = area, force = entity.force, name = entity.name}
 end
 
-local check_refresh_gui = function()
+check_refresh_gui = function()
   if not next(script_data.marked_for_refresh) then return end
   for player_index, bool in pairs (script_data.marked_for_refresh) do
     make_unit_gui(game.get_player(player_index))
@@ -1025,7 +1025,6 @@ local check_refresh_gui = function()
 end
 
 local process_unit_selection = function(entities, player)
-  player.clear_cursor()
   local player_index = player.index
   local map = script_data.unit_unselectable
   local group = get_selected_units(player_index) or {}
@@ -1040,17 +1039,17 @@ local process_unit_selection = function(entities, player)
 
       local unit_data = units[unit_index]
       if unit_data then
-        deselect_units(unit_data)
+        deselect_unit(unit_data)
       else
         unit_data =
         {
           entity = entity,
           command_queue = {},
-          idle = true
+          idle = true,
+          is_unit = entity.type == "unit"
         }
         units[unit_index] = unit_data
       end
-      unit_data.entity = entity
       unit_data.group = group
       unit_data.player = player_index
       add_unit_indicators(unit_data)
@@ -1079,15 +1078,6 @@ local process_unit_selection = function(entities, player)
   check_refresh_gui()
 end
 
-local clear_selected_units = function(player)
-  local units = script_data.units
-  local group = get_selected_units(player.index)
-  if not group then return end
-  for unit_number, ent in pairs (group) do
-    deselect_units(units[unit_number])
-    group[unit_number] = nil
-  end
-end
 
 local unit_selection = function(event)
   local entities = event.entities
@@ -1102,7 +1092,7 @@ local unit_selection = function(event)
   --local center = util.center(area)
 
   if not append then
-    clear_selected_units(player)
+    clear_selected_units(event.player_index)
   end
 
   local first_index, first = next(entities)
@@ -1226,7 +1216,6 @@ local make_move_command = function(param)
     i = i + 1
     local destination = {origin.x + offset.x, origin.y + offset.y}
     --log(entity.unit_number.." = "..serpent.line(destination))
-    local is_unit = (entity.type == "unit")
     local destination = find(entity.name, destination, 0, 0.5)
     local command =
     {
@@ -1241,12 +1230,12 @@ local make_move_command = function(param)
     }
     local unit_data = units[unit_number]
     if append then
-      if is_unit and unit_data.idle then
+      if unit_data.is_unit and unit_data.idle then
         set_command(unit_data, command)
       end
       insert(unit_data.command_queue, command)
     else
-      if is_unit then
+      if unit_data.is_unit then
         set_command(unit_data, command)
         unit_data.command_queue = {}
       else
@@ -1264,7 +1253,8 @@ local move_units = function(event)
     return
   end
   local player = game.players[event.player_index]
-  make_move_command{
+  make_move_command
+  {
     position = util.center(event.area),
     distraction = defines.distraction.none,
     group = group,
@@ -1356,7 +1346,6 @@ local make_patrol_command = function(param)
     i = i + 1
     local destination = {origin.x + offset.x, origin.y + offset.y}
     local unit_data = units[unit_number]
-    local is_unit = (entity.type == "unit")
     local next_destination = find(entity.name, destination, 0, 0.5)
     local patrol_command = find_patrol_comand(unit_data.command_queue)
     if patrol_command and append then
@@ -1375,12 +1364,12 @@ local make_patrol_command = function(param)
     if not append then
       unit_data.command_queue = {command}
       set_unit_not_idle(unit_data)
-      if is_unit then
+      if unit_data.is_unit then
         process_command_queue(unit_data)
       end
     elseif not patrol_command then
       insert(unit_data.command_queue, command)
-      if is_unit and unit_data.idle then
+      if unit_data.is_unit and unit_data.idle then
         process_command_queue(unit_data)
       end
     end
@@ -1392,7 +1381,8 @@ local patrol_units = function(event)
   local group = get_selected_units(event.player_index)
   if not group then return end
   local player = game.players[event.player_index]
-  make_patrol_command{
+  make_patrol_command
+  {
     position = util.center(event.area),
     distraction = defines.distraction.by_anything,
     group = group,
@@ -1400,10 +1390,6 @@ local patrol_units = function(event)
     player = player
   }
   player.play_sound({path = tool_names.unit_move_sound})
-end
-
-local quick_dist = function(p1, p2)
-  return (((p1.x - p2.x) * (p1.x - p2.x)) + ((p1.y - p2.y) * (p1.y - p2.y)))
 end
 
 local directions =
@@ -1447,6 +1433,7 @@ local unit_follow = function(unit_data)
     })
     return
   end
+
   if speed then
     speed = math.max(0.05, math.min(unit.prototype.speed, speed * 1.05))
   end
@@ -1464,7 +1451,6 @@ end
 local register_to_attack = function(unit_data)
   insert(script_data.attack_register, unit_data)
 end
-
 
 local make_attack_command = function(group, entities, append)
   if #entities == 0 then return end
@@ -1578,25 +1564,13 @@ local alt_selected_area_actions =
   --[tool_names.unit_follow_tool] = follow_unit,
 }
 
-local clear_poop = function(player_index)
-  local player = game.get_player(player_index)
-  if not player then return end
-  local cursor = player.cursor_stack
-  if not (cursor and cursor.valid and cursor.valid_for_read) then return end
-  if cursor.name == "select-units" then
-    cursor.clear()
-  end
-end
-
 local on_player_selected_area = function(event)
-  clear_poop(event.player_index)
   local action = selected_area_actions[event.item]
   if not action then return end
   return action(event)
 end
 
 local on_player_alt_selected_area = function(event)
-  clear_poop(event.player_index)
   local action = alt_selected_area_actions[event.item]
   if not action then return end
   return action(event)
@@ -1894,16 +1868,9 @@ local on_player_removed = function(event)
   end
   script_data.open_frames[event.player_index] = nil
 
-  local group = get_selected_units(event.player_index)
-  if not group then return end
-
-  local units = script_data.units
-  for unit_number, ent in pairs (group) do
-    deselect_units(units[unit_number])
-  end
+  clear_player_group(event.player_index)
 end
 
-local NO_GROUP = true
 local on_unit_added_to_group = function(event)
   local unit = event.unit
   if not (unit and unit.valid) then return end
@@ -1914,36 +1881,10 @@ local on_unit_added_to_group = function(event)
     --We don't have anything to do with this unit, so we don't care
     return
   end
-  if NO_GROUP then
-    --this is the 'eff off' function
-    --game.print("Told group to die! "..group.group_number.." - "..unit.unit_number)
-    group.destroy()
-    process_command_queue(unit_data)
-    return
-  end
-  --[[
-  --game.print("Unit added to group: "..unit.unit_number)
-  unit_data.in_group = true
-  add_unit_indicators(unit_data)
-  --He took control of one of our units! lets keep track of this group and set this guy a command when the group finishes its command
-  if script_data.unit_groups_to_disband[group.group_number] then
-    --He's already on the hit list.
-    return
-  end
-  script_data.unit_groups_to_disband[group.group_number] = group
-  --game.print("Group added to hit list: "..group.group_number)
-  ]]
-end
 
-local on_unit_removed_from_group = function(event)
-  if NO_GROUP then return end
-  local unit = event.unit
-  if not (unit and unit.valid) then return end
-  local unit_data = script_data.units[unit.unit_number]
-  if unit_data and unit_data.in_group then
-    --game.print("Unit removed from group: "..unit.unit_number)
-    return process_command_queue(unit_data)
-  end
+  group.destroy()
+  process_command_queue(unit_data)
+
 end
 
 local validate_some_stuff = function()
@@ -1955,14 +1896,6 @@ local validate_some_stuff = function()
     end
   end
 
-  --[[
-  local groups = script_data.unit_groups_to_disband
-  for group_number, group in pairs (groups) do
-    if not (group and group.valid) then
-      groups[group_number] = nil
-    end
-  end
-  ]]
 end
 
 local set_map_settings = function()
@@ -2009,7 +1942,8 @@ local on_entity_spawned = function(event)
   {
     entity = unit,
     command_queue = util.copy(queue),
-    idle = false
+    idle = false,
+    is_unit = entity.type == "unit"
   }
   script_data.units[unit.unit_number] = unit_data
 
@@ -2063,7 +1997,7 @@ local select_all_units_hotkey = function(event)
   local player = game.get_player(event.player_index)
   if not (player and player.valid) then return end
 
-  clear_selected_units(player)
+  clear_selected_units(event.player_index)
 
   local names = get_unit_names()
   if not next(unit_names) then return end
@@ -2180,7 +2114,27 @@ local shift_right_click = function(event)
 end
 
 local on_gui_closed = function(event)
-   gui_actions.exit_button(event)
+  clear_player_group(event.player_index)
+end
+
+local check_clear_player_cursor = function(player_index)
+  --game.print("Clearing cursor and group")
+  local player = game.get_player(player_index)
+  if not player then return end
+
+  local stack = player.cursor_stack
+  if not stack then return end
+  if stack.valid_for_read then return end
+
+  clear_player_group(player_index)
+
+end
+
+local on_player_cursor_stack_changed = function(event)
+  local should_clear = script_data.clear_on_stack_change[event.player_index]
+  if not should_clear then return end
+  script_data.clear_on_stack_change[event.player_index] = nil
+  check_clear_player_cursor(event.player_index)
 end
 
 local unit_control = {}
@@ -2219,6 +2173,8 @@ unit_control.events =
   [defines.events.on_entity_spawned] = on_entity_spawned,
   [script_events.on_unit_spawned] = on_entity_spawned,
 
+  [defines.events.on_player_cursor_stack_changed] = on_player_cursor_stack_changed,
+
   ["left-click"] = left_click,
   ["shift-left-click"] = shift_left_click,
   ["right-click"] = right_click,
@@ -2235,6 +2191,7 @@ unit_control.on_configuration_changed = function(configuration_changed_data)
   set_map_settings()
   reset_rendering()
   script_data.last_location = script_data.last_location or {}
+  script_data.clear_on_stack_change = script_data.clear_on_stack_change or {}
 end
 
 unit_control.on_load = function()
