@@ -12,9 +12,11 @@ local get_deployer_map = function()
     return deployer_map
   end
   deployer_map = {}
-  for name, prototype in pairs (game.item_prototypes["select-units"].entity_filters) do
-    if prototype.crafting_speed then
-      deployer_map[name] = true
+  if settings.startup["unit-control-spawn-units"].value then
+    for name, prototype in pairs (game.item_prototypes["select-units"].entity_filters) do
+      if prototype.crafting_speed then
+        deployer_map[name] = true
+      end
     end
   end
   return deployer_map
