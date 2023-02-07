@@ -1943,7 +1943,7 @@ local on_entity_spawned = function(event)
     entity = unit,
     command_queue = util.copy(queue),
     idle = false,
-    is_unit = entity.type == "unit"
+    is_unit = unit.type == "unit"
   }
   script_data.units[unit.unit_number] = unit_data
 

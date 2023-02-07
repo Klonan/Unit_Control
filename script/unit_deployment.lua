@@ -17,6 +17,13 @@ local get_deployer_map = function()
       deployer_map[name] = true
     end
   end
+  if remote.interfaces["unit-control-no-spawning"] then
+    for name, _ in pairs(remote.interfaces["unit-control-no-spawning"]) do
+      for index, name in pairs(remote.call("unit-control-no-spawning", name)) do
+        deployer_map[name] = nil
+      end
+    end
+  end
   return deployer_map
 end
 
